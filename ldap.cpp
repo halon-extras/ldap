@@ -47,7 +47,11 @@ void LDAPResult_object_free(void* ptr)
 void LDAPResult_class_next(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* ret)
 {
 	if (HalonMTA_hsl_argument_length(args))
+	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
+	}
 
 	MyLDAPResult* l = (MyLDAPResult*)HalonMTA_hsl_object_ptr_get(hhc);
 	if (l->ldap->ld == nullptr)
@@ -131,7 +135,11 @@ void LDAPResult_class_next(HalonHSLContext* hhc, HalonHSLArguments* args, HalonH
 void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* ret)
 {
 	if (HalonMTA_hsl_argument_length(args) < 1 || HalonMTA_hsl_argument_length(args) > 2)
+	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
+	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
 	if (l->ld == nullptr)
@@ -243,6 +251,8 @@ void LDAP_class_getoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &param, &paramlen) ||
 			HalonMTA_hsl_argument_get(args, 1))
 	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
 	}
 
@@ -274,7 +284,11 @@ void LDAP_class_getoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* ret)
 {
 	if (HalonMTA_hsl_argument_length(args) != 2)
+	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
+	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
 	if (l->ld == nullptr)
@@ -379,7 +393,11 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 void LDAP_class_bind(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* ret)
 {
 	if (HalonMTA_hsl_argument_length(args) > 2)
+	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
+	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
 	if (l->ld == nullptr)
@@ -421,7 +439,11 @@ void LDAP_class_bind(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValu
 void LDAP_class_unbind(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* ret)
 {
 	if (HalonMTA_hsl_argument_length(args))
+	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
+	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
 	if (l->ld == nullptr)
@@ -442,7 +464,11 @@ void LDAP_class_unbind(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 void LDAP_class_getpeerx509(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* ret)
 {
 	if (HalonMTA_hsl_argument_length(args))
+	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
+	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
 	if (l->ld == nullptr)
@@ -463,13 +489,17 @@ void LDAP_class_getpeerx509(HalonHSLContext* hhc, HalonHSLArguments* args, Halon
 		return;
 	}
 
-	//return class_X509(ReturnValue(std::make_shared<::X_509>(cert, false)));
+	HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_X509, cert, 0);
 }
 
 void LDAP_class_errno(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* ret)
 {
 	if (HalonMTA_hsl_argument_length(args))
+	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
+	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
 	double err = l->error;
@@ -479,7 +509,11 @@ void LDAP_class_errno(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVal
 void LDAP_class_starttls(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* ret)
 {
 	if (HalonMTA_hsl_argument_length(args))
+	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
+	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
 	if (l->ld == nullptr)
@@ -505,6 +539,8 @@ void LDAP_class(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* re
 			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &param, &paramlen) ||
 			HalonMTA_hsl_argument_get(args, 1))
 	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
 	}
 
@@ -532,6 +568,8 @@ void LDAP_filter_escape(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLV
 			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &in.bv_val, &in.bv_len) ||
 			HalonMTA_hsl_argument_get(args, 1))
 	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
 	}
 
@@ -546,6 +584,8 @@ void LDAP_dn2str(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* r
 	if (!x || HalonMTA_hsl_value_type(x) != HALONMTA_HSL_TYPE_ARRAY ||
 			HalonMTA_hsl_argument_get(args, 1))
 	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
 	}
 
@@ -609,6 +649,8 @@ void LDAP_str2dn(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* r
 			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &param, &paramlen) ||
 			HalonMTA_hsl_argument_get(args, 1))
 	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
 	}
 
@@ -650,6 +692,8 @@ void LDAP_err2string(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValu
 			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_NUMBER, &param, nullptr) ||
 			HalonMTA_hsl_argument_get(args, 1))
 	{
+		HalonHSLValue* x = HalonMTA_hsl_throw(hhc);
+		HalonMTA_hsl_value_set(x, HALONMTA_HSL_TYPE_EXCEPTION, "Invalid number of parameters", 0);
 		return;
 	}
 
@@ -659,11 +703,11 @@ void LDAP_err2string(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValu
 HALON_EXPORT
 bool Halon_hsl_register(HalonHSLRegisterContext* ptr)
 {
-	HalonMTA_hsl_register_function(ptr, "LDAP2", &LDAP_class);
-	HalonMTA_hsl_register_static_function(ptr, "LDAP2", "filter_escape", &LDAP_filter_escape);
-	HalonMTA_hsl_register_static_function(ptr, "LDAP2", "str2dn", &LDAP_str2dn);
-	HalonMTA_hsl_register_static_function(ptr, "LDAP2", "dn2str", &LDAP_dn2str);
-	HalonMTA_hsl_register_static_function(ptr, "LDAP2", "err2string", &LDAP_err2string);
+	HalonMTA_hsl_register_function(ptr, "LDAP", &LDAP_class);
+	HalonMTA_hsl_register_static_function(ptr, "LDAP", "filter_escape", &LDAP_filter_escape);
+	HalonMTA_hsl_register_static_function(ptr, "LDAP", "str2dn", &LDAP_str2dn);
+	HalonMTA_hsl_register_static_function(ptr, "LDAP", "dn2str", &LDAP_dn2str);
+	HalonMTA_hsl_register_static_function(ptr, "LDAP", "err2string", &LDAP_err2string);
 	return true;
 }
 
