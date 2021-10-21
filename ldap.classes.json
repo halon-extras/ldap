@@ -1,0 +1,236 @@
+[
+    {
+        "name": "LDAP",
+        "parameters": {
+            "required": [
+                {
+                    "name": "uri",
+                    "type": "string"
+                }
+            ],
+            "optional": []
+        },
+        "methods": [
+            {
+                "name": "setoption",
+                "parameters": {
+                    "required": [
+                        {
+                            "name": "name",
+                            "type": "string"
+                        },
+                        {
+                            "name": "value",
+                            "type": "any"
+                        }
+                    ],
+                    "optional": []
+                },
+                "returnType": "LDAP or none",
+                "detail": "LDAP->setoption(string $name, any $value): LDAP or none",
+                "value": "setoption($0)",
+                "documentation": "Set LDAP connection options. On error none is returned.",
+                "link": "[Full documentation]({{ docsurl }}functions.html#LDAP.setoption)"
+            },
+            {
+                "name": "getoption",
+                "parameters": {
+                    "required": [
+                        {
+                            "name": "name",
+                            "type": "string"
+                        }
+                    ],
+                    "optional": []
+                },
+                "returnType": "any or none",
+                "detail": "LDAP->getoption(string $name): any or none",
+                "value": "getoption($0)",
+                "documentation": "Get LDAP connection options. On error none is returned.",
+                "link": "[Full documentation]({{ docsurl }}functions.html#LDAP.getoption)"
+            },
+            {
+                "name": "starttls",
+                "parameters": {
+                    "required": [],
+                    "optional": []
+                },
+                "returnType": "LDAP or none",
+                "detail": "LDAP->starttls(): LDAP or none",
+                "value": "starttls()",
+                "documentation": "Issue STARTTLS on LDAP connection. On error none is returned.",
+                "link": "[Full documentation]({{ docsurl }}functions.html#LDAP.starttls)"
+            },
+            {
+                "name": "bind",
+                "parameters": {
+                    "required": [],
+                    "optional": [
+                        {
+                            "name": "dn",
+                            "type": "string"
+                        },
+                        {
+                            "name": "cred",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "returnType": "LDAP or none",
+                "detail": "LDAP->bind([string $dn [, string $cred]]): LDAP or none",
+                "value": "bind($0)",
+                "documentation": "Bind the LDAP connection. For anonymous bind, do not specify the credentials. On error none is returned.",
+                "link": "[Full documentation]({{ docsurl }}functions.html#LDAP.bind)"
+            },
+            {
+                "name": "search",
+                "parameters": {
+                    "required": [
+                        {
+                            "name": "basedn",
+                            "type": "string"
+                        }
+                    ],
+                    "optional": [
+                        {
+                            "name": "options",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "returnType": "LDAPResult or none",
+                "detail": "LDAP->search(string $basedn [, array $options]): LDAPResult or none",
+                "value": "search($0)",
+                "documentation": "Search LDAP connection in the current base and subtree. On error none is returned.",
+                "link": "[Full documentation]({{ docsurl }}functions.html#LDAP.search)"
+            },
+            {
+                "name": "unbind",
+                "parameters": {
+                    "required": [],
+                    "optional": []
+                },
+                "returnType": "LDAP or none",
+                "detail": "LDAP->unbind(): LDAP or none",
+                "value": "unbind()",
+                "documentation": "Unbind the LDAP connection. On error none is returned.",
+                "link": "[Full documentation]({{ docsurl }}functions.html#LDAP.unbind)"
+            },
+            {
+                "name": "errno",
+                "parameters": {
+                    "required": [],
+                    "optional": []
+                },
+                "returnType": "number",
+                "detail": "LDAP->errno(): number",
+                "value": "errno()",
+                "documentation": "Get the latest errno returned from the underlying OpenLDAP API.",
+                "link": "[Full documentation]({{ docsurl }}functions.html#LDAP.errno)"
+            },
+            {
+                "name": "getpeerx509",
+                "parameters": {
+                    "required": [],
+                    "optional": []
+                },
+                "returnType": "X509 or none",
+                "detail": "LDAP->getpeerx509(): X509 or none",
+                "value": "getpeerx509()",
+                "documentation": "Get the peer certificate (X.509) as a X509 instance. On error none is returned.",
+                "link": "[Full documentation]({{ docsurl }}functions.html#LDAP.getpeerx509)"
+            },
+            {
+                "static": true,
+                "name": "err2string",
+                "parameters": {
+                    "required": [
+                        {
+                            "name": "errno",
+                            "type": "number"
+                        }
+                    ],
+                    "optional": []
+                },
+                "returnType": "string",
+                "detail": "LDAP::err2string(number $errno): string",
+                "value": "err2string($0)",
+                "documentation": "Get a descriptive error message, uses OpenLDAP\u2019s ldap_err2string().",
+                "link": "[Full documentation]({{ docsurl }}functions.html#LDAP.err2string)"
+            },
+            {
+                "static": true,
+                "name": "filter_escape",
+                "parameters": {
+                    "required": [
+                        {
+                            "name": "value",
+                            "type": "string"
+                        }
+                    ],
+                    "optional": []
+                },
+                "returnType": "string",
+                "detail": "LDAP::filter_escape(string $value): string",
+                "value": "filter_escape($0)",
+                "documentation": "LDAP escape values to be used in LDAP filters.",
+                "link": "[Full documentation]({{ docsurl }}functions.html#LDAP.filter_escape)"
+            },
+            {
+                "static": true,
+                "name": "str2dn",
+                "parameters": {
+                    "required": [],
+                    "optional": []
+                },
+                "returnType": "array or none",
+                "detail": "LDAP::str2dn(): array or none",
+                "value": "str2dn()",
+                "documentation": "Parses the string representation of a distinguished name str into its components, returning an array of tupels. On error none is returned.",
+                "link": "[Full documentation]({{ docsurl }}functions.html#LDAP.str2dn)"
+            },
+            {
+                "static": true,
+                "name": "dn2str",
+                "parameters": {
+                    "required": [],
+                    "optional": []
+                },
+                "returnType": "string or none",
+                "detail": "LDAP::dn2str(): string or none",
+                "value": "dn2str()",
+                "documentation": "Performs the inverse operation of LDAP.str2dn(), returning a string representation of dn with the necessary escaping. On error none is returned.",
+                "link": "[Full documentation]({{ docsurl }}functions.html#LDAP.dn2str)"
+            }
+        ],
+        "detail": "LDAP(string $uri)",
+        "value": "LDAP($0)",
+        "documentation": "The LDAP class is a OpenLDAP wrapper class. The URI should be in the format of ldap:\/\/ or ldaps:\/\/. Multiple hosts may be given separated by space.",
+        "link": "[Full documentation]({{ docsurl }}functions.html#LDAP)"
+    },
+    {
+        "name": "LDAPResult",
+        "parameters": {
+            "required": [],
+            "optional": []
+        },
+        "methods": [
+            {
+                "name": "next",
+                "parameters": {
+                    "required": [],
+                    "optional": []
+                },
+                "returnType": "array or none",
+                "detail": "LDAPResult->next(): array or none",
+                "value": "next()",
+                "documentation": "Return the next result. If there are no more results false is returned, and on error none is returned.",
+                "link": "[Full documentation]({{ docsurl }}functions.html#LDAPResult.next)"
+            }
+        ],
+        "detail": "LDAPResult()",
+        "value": "LDAPResult()",
+        "documentation": "A LDAP result iterable object which holds the result from an LDAP search.",
+        "link": "[Full documentation]({{ docsurl }}functions.html#LDAPResult)"
+    }
+]

@@ -31,6 +31,16 @@ IF(EXISTS "/etc/os-release")
 ENDIF()
 
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/ldap.so DESTINATION plugins)
+INSTALL(FILES ldap.classes.json DESTINATION share/plugins)
+
+IF(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.14.0") 
+	FILE(CREATE_LINK "/opt/halon/plugins/ldap.so" "${CMAKE_CURRENT_BINARY_DIR}/ldap.so.link" SYMBOLIC)
+ELSE()
+	ADD_CUSTOM_TARGET(link_target ALL COMMAND ${CMAKE_COMMAND} -E create_symlink "/opt/halon/plugins/ldap.so" "${CMAKE_CURRENT_BINARY_DIR}/ldap.so.link")
+ENDIF()
+
+INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/ldap.so.link" DESTINATION plugins/autoload/smtpd RENAME ldap.so)
+INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/ldap.so.link" DESTINATION plugins/autoload/hsh RENAME ldap.so)
 
 SET(CPACK_PACKAGING_INSTALL_PREFIX "/opt/halon")
 IF (CPACK_GENERATOR MATCHES "DEB")
