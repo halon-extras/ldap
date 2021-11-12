@@ -14,13 +14,19 @@ ADD_LIBRARY(ldap SHARED
 
 SET_TARGET_PROPERTIES(ldap PROPERTIES PREFIX "")
 
+IF (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+TARGET_LINK_LIBRARIES(ldap
+	/usr/local/lib/libldap.so
+)
+ELSE()
 TARGET_LINK_LIBRARIES(ldap
 	-lldap
 )
+ENDIF()
 
 INCLUDE_DIRECTORIES(
-	../smtpd
 	/opt/halon/include
+	/usr/local/include
 )
 
 IF(EXISTS "/etc/os-release")
