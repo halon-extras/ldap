@@ -298,7 +298,7 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 	size_t paramlen;
 	if (!x || HalonMTA_hsl_value_type(x) != HALONMTA_HSL_TYPE_STRING ||
 			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &param, &paramlen) ||
-			HalonMTA_hsl_argument_get(args, 1))
+			!HalonMTA_hsl_argument_get(args, 1))
 	{
 		return;
 	}
@@ -470,9 +470,19 @@ void LDAP_class_getpeerx509(HalonHSLContext* hhc, HalonHSLArguments* args, Halon
 	if (l->ld == nullptr)
 		return;
 
+	char* engine = nullptr;
+	int r2 = ldap_get_option(l->ld, LDAP_OPT_X_TLS_PACKAGE, &engine);
+	if (r2 != LDAP_OPT_SUCCESS || !engine || strcmp(engine, "OpenSSL") != 0)
+	{
+		if (engine) free(engine);
+		l->error = LDAP_OPT_ERROR;
+		return;
+	}
+	if (engine) free(engine);
+
 	SSL* ssl = nullptr;
 	int r = ldap_get_option(l->ld, LDAP_OPT_X_TLS_SSL_CTX, &ssl);
-	if (r == LDAP_OPT_ERROR || ssl == nullptr)
+	if (r != LDAP_OPT_SUCCESS || ssl == nullptr)
 	{
 		l->error = LDAP_OPT_ERROR;
 		return;
