@@ -24,8 +24,10 @@ ENV BASH_ENV="/usr/bin/scl_enable" \
     ENV="/usr/bin/scl_enable" \
     PROMPT_COMMAND=". /usr/bin/scl_enable"
 
-RUN yum install -y cmake3 make gcc-c++ rpm-build openssl-devel openldap-devel
+RUN yum install -y cmake3 make gcc-c++ rpm-build
 RUN echo -n "CENTOS7" > /OSRELEASE.txt
+
+RUN yum install -y openssl-devel openldap-devel
 
 COPY build.sh /build.sh
 CMD ["/build.sh"]

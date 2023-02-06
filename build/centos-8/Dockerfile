@@ -14,8 +14,13 @@ RUN echo "gpgkey=https://raw.githubusercontent.com/halon/changelog/master/pgp-ke
 RUN echo "enabled=1" >> /etc/yum.repos.d/Halon.repo
 RUN yum install -y halon-5.10.0
 
-RUN yum install -y cmake3 make gcc-c++ rpm-build openssl-devel openldap-devel
+RUN yum install -y cmake3 make gcc-c++ rpm-build
 RUN echo -n "CENTOS8" > /OSRELEASE.txt
+
+RUN yum install -y 'dnf-command(config-manager)'
+RUN yum config-manager --set-enabled powertools
+
+RUN yum install -y openssl-devel openldap-devel
 
 COPY build.sh /build.sh
 CMD ["/build.sh"]

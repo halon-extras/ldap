@@ -6,9 +6,6 @@
 #include <ldap.h>
 #include <openssl/ssl.h>
 
-#define HALON_CA_FILE "/etc/ssl/certs/ca-certificates.crt"
-#define HALON_CA_PATH "/etc/ssl/certs"
-
 class MyLDAP
 {
 	public:
@@ -361,6 +358,7 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		val = 0;
 		ldap_set_option(l->ld, LDAP_OPT_X_TLS_NEWCTX, &val);
 	}
+#if !defined(__linux__)
 	else if (strcmp(param, "tls_default_ca") == 0)
 	{
 		bool b;
@@ -374,6 +372,7 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 			ldap_set_option(l->ld, LDAP_OPT_X_TLS_NEWCTX, &val);
 		}
 	}
+#endif
 	else
 		return;
 
@@ -735,6 +734,9 @@ MyLDAP::MyLDAP(const std::string& uri)
 		ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &v);
 		ldap_set_option(ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF);
 		ldap_set_option(ld, LDAP_OPT_X_TLS_CACERTDIR, HALON_CA_PATH);
+#if defined(__linux__)
+		ldap_set_option(ld, LDAP_OPT_X_TLS_CACERTFILE, HALON_CA_FILE);
+#endif
 		int val = 0;
 		ldap_set_option(ld, LDAP_OPT_X_TLS_NEWCTX, &val);
 	}
