@@ -708,11 +708,18 @@ void LDAP_err2string(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValu
 HALON_EXPORT
 bool Halon_hsl_register(HalonHSLRegisterContext* ptr)
 {
+	// XXX: legacy
 	HalonMTA_hsl_register_function(ptr, "LDAP", &LDAP_class);
 	HalonMTA_hsl_register_static_function(ptr, "LDAP", "filter_escape", &LDAP_filter_escape);
 	HalonMTA_hsl_register_static_function(ptr, "LDAP", "str2dn", &LDAP_str2dn);
 	HalonMTA_hsl_register_static_function(ptr, "LDAP", "dn2str", &LDAP_dn2str);
 	HalonMTA_hsl_register_static_function(ptr, "LDAP", "err2string", &LDAP_err2string);
+
+	HalonMTA_hsl_module_register_function(ptr, "LDAP", &LDAP_class);
+	HalonMTA_hsl_module_register_static_function(ptr, "LDAP", "filter_escape", &LDAP_filter_escape);
+	HalonMTA_hsl_module_register_static_function(ptr, "LDAP", "str2dn", &LDAP_str2dn);
+	HalonMTA_hsl_module_register_static_function(ptr, "LDAP", "dn2str", &LDAP_dn2str);
+	HalonMTA_hsl_module_register_static_function(ptr, "LDAP", "err2string", &LDAP_err2string);
 	return true;
 }
 
