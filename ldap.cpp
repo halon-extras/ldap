@@ -145,8 +145,7 @@ void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 	char* base = nullptr;
 	size_t baselen;
 	if (!x || HalonMTA_hsl_value_type(x) != HALONMTA_HSL_TYPE_STRING ||
-			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &base, &baselen) ||
-			HalonMTA_hsl_argument_get(args, 1))
+			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &base, &baselen))
 	{
 		return;
 	}
