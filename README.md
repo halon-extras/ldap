@@ -199,11 +199,6 @@ Performs the inverse operation of `str2dn()`, returning a string representation 
 
 **Return type**: `string` or `none`
 
-```
-echo LDAP::str2dn("cn=admin,dc=example,dc=org");
-// [0=>[0=>"cn",1=>"admin"],1=>[0=>"dc",1=>"example"],2=>[0=>"dc",1=>"org"]]
-```
-
 ### LDAPResult
 A LDAP result iterable object which holds the result from an LDAP search.
 
