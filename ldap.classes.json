@@ -1,6 +1,7 @@
 [
     {
         "name": "LDAP",
+        "instantiable": true,
         "parameters": {
             "required": [
                 {
@@ -210,6 +211,7 @@
     },
     {
         "name": "LDAPResult",
+        "instantiable": false,
         "parameters": {
             "required": [],
             "optional": []
