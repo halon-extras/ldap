@@ -622,7 +622,7 @@ void LDAP_dn2str(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* r
 			dn[i + 1] = nullptr;
 			goto free;
 		}
-		HalonMTA_hsl_value_get(v2, HALONMTA_HSL_TYPE_STRING, &dn[i][0]->la_attr.bv_val, &dn[i][0]->la_attr.bv_len);
+		HalonMTA_hsl_value_get(v1, HALONMTA_HSL_TYPE_STRING, &dn[i][0]->la_attr.bv_val, &dn[i][0]->la_attr.bv_len);
 		HalonMTA_hsl_value_get(v2, HALONMTA_HSL_TYPE_STRING, &dn[i][0]->la_value.bv_val, &dn[i][0]->la_value.bv_len);
 
 		dn[i][0]->la_flags = LDAP_AVA_STRING;
