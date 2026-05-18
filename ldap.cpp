@@ -200,8 +200,8 @@ void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 				attrs = new const char*[length + 1];
 
 				HalonHSLValue *val2;
-				size_t ia = 0;
-				while ((val2 = HalonMTA_hsl_value_array_get(v, ia, nullptr)))
+				size_t ia = 0, ib = 0;
+				while ((val2 = HalonMTA_hsl_value_array_get(v, ib++, nullptr)))
 				{
 					char* val;
 					size_t vallen;
