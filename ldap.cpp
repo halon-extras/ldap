@@ -343,7 +343,7 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_NUMBER ||
 			!HalonMTA_hsl_value_get(v, HALONMTA_HSL_TYPE_NUMBER, &number, nullptr))
 			return;
-		struct timeval to = { (int)number, 0 };
+		int to = (int)number;
 		r = ldap_set_option(l->ld, LDAP_OPT_TIMELIMIT, &to);
 	}
 	else if (strcmp(param, "tls_verify_peer") == 0)
