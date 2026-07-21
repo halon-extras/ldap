@@ -1,5 +1,21 @@
 version: '2'
 services:
+  ldap:
+    image: instantlinux/openldap:2.6.13-r0
+    platform: linux/amd64
+    entrypoint:
+      - /bin/sh
+      - -c
+      - sed -i -e "s#find /root/ldif -name '\*.ldif'#echo /root/ldif/1-domain.ldif#" -e '/prepopulate/,/^[[:space:]]*fi$/ s/slapadd /slapadd -n1 /' /usr/local/bin/entrypoint.sh && exec /usr/local/bin/entrypoint.sh
+    environment:
+      SLAPD_FQDN: example.test
+      SLAPD_SUFFIX: dc=example,dc=test
+      SLAPD_ORGANIZATION: LDAP Client Test
+      SLAPD_ROOTDN: cn=admin,dc=example,dc=test
+      SLAPD_ROOTPW: admin
+    volumes:
+      - ./ldap/ldif:/etc/openldap/prepopulate:ro
+      - ldap-data:/var/lib/openldap/openldap-data
   halon-smtpd:
     build:
       context: ./
@@ -15,3 +31,4 @@ services:
       - halon-spool:/var/spool/halon
 volumes:
   halon-spool:
+  ldap-data:

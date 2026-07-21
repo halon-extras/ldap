@@ -1,0 +1,36 @@
+dn: ou=people,dc=example,dc=test
+objectClass: top
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,dc=example,dc=test
+objectClass: top
+objectClass: organizationalUnit
+ou: groups
+
+dn: uid=jane,ou=people,dc=example,dc=test
+objectClass: top
+objectClass: inetOrgPerson
+uid: jane
+cn: Jane Doe
+sn: Doe
+givenName: Jane
+mail: jane@example.test
+userPassword: jane
+
+dn: uid=john,ou=people,dc=example,dc=test
+objectClass: top
+objectClass: inetOrgPerson
+uid: john
+cn: John Doe
+sn: Doe
+givenName: John
+mail: john@example.test
+userPassword: john
+
+dn: cn=finance,ou=groups,dc=example,dc=test
+objectClass: top
+objectClass: groupOfNames
+cn: finance
+member: uid=jane,ou=people,dc=example,dc=test
+member: uid=john,ou=people,dc=example,dc=test

@@ -1,0 +1,28 @@
+import { LDAP } from "extras://ldap";
+
+function assert_equal($name, $result, $expect)
+{
+    if (json_encode($result) !== json_encode($expect))
+        throw Exception($name . ": FAILED\nRESULT(" . json_encode($result) . ")\nEXPECT(" . json_encode($expect) . ")");
+    echo $name . ": OK";
+}
+
+$admin = LDAP("ldap://ldap:389");
+if (!$admin->bind("cn=admin,dc=example,dc=test", "admin"))
+    throw Exception("Admin bind: FAILED\n" . LDAP::err2string($admin->errno()));
+echo "Test 1: OK";
+
+$result = $admin->search("ou=people,dc=example,dc=test", [
+    "scope" => "sub",
+    "filter" => "(uid=jane)",
+    "attributes" => ["uid", "cn", "mail"]
+]);
+if (!$result)
+    throw Exception("Jane search: FAILED\n" . LDAP::err2string($admin->errno()));
+
+$jane = $result->next();
+assert_equal("Test 2", $jane["dn"], "uid=jane,ou=people,dc=example,dc=test");
+assert_equal("Test 3", $jane["uid"], ["jane"]);
+assert_equal("Test 4", $jane["cn"], ["Jane Doe"]);
+assert_equal("Test 5", $jane["mail"], ["jane@example.test"]);
+assert_equal("Test 6", $result->next(), false);
