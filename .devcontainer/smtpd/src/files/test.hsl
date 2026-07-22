@@ -9,7 +9,7 @@ function assert_equal($name, $result, $expect)
 
 $admin = LDAP("ldap://ldap:389");
 if (!$admin->bind("cn=admin,dc=example,dc=test", "admin"))
-    throw Exception("Admin bind: FAILED\n" . LDAP::err2string($admin->errno()));
+    throw Exception("Test 1: FAILED\n" . LDAP::err2string($admin->errno()));
 echo "Test 1: OK";
 
 $result = $admin->search("ou=people,dc=example,dc=test", [
@@ -18,11 +18,12 @@ $result = $admin->search("ou=people,dc=example,dc=test", [
     "attributes" => ["uid", "cn", "mail"]
 ]);
 if (!$result)
-    throw Exception("Jane search: FAILED\n" . LDAP::err2string($admin->errno()));
+    throw Exception("Test 2: FAILED\n" . LDAP::err2string($admin->errno()));
+echo "Test 2: OK";
 
 $jane = $result->next();
-assert_equal("Test 2", $jane["dn"], "uid=jane,ou=people,dc=example,dc=test");
-assert_equal("Test 3", $jane["uid"], ["jane"]);
-assert_equal("Test 4", $jane["cn"], ["Jane Doe"]);
-assert_equal("Test 5", $jane["mail"], ["jane@example.test"]);
-assert_equal("Test 6", $result->next(), false);
+assert_equal("Test 3", $jane["dn"], "uid=jane,ou=people,dc=example,dc=test");
+assert_equal("Test 4", $jane["uid"], ["jane"]);
+assert_equal("Test 5", $jane["cn"], ["Jane Doe"]);
+assert_equal("Test 6", $jane["mail"], ["jane@example.test"]);
+assert_equal("Test 7", $result->next(), false);
