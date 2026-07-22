@@ -63,6 +63,7 @@ void LDAPResult_class_next(HalonHSLContext* hhc, HalonHSLArguments* args, HalonH
 
 	if (r == LDAP_RES_SEARCH_RESULT)
 	{
+		ldap_msgfree(result);
 		bool f = false;
 		HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_BOOLEAN, &f, 0);
 		return;
