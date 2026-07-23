@@ -6,7 +6,10 @@ services:
     entrypoint:
       - /bin/sh
       - -c
-      - sed -i -e "s#find /root/ldif -name '\*.ldif'#echo /root/ldif/1-domain.ldif#" -e '/prepopulate/,/^[[:space:]]*fi$/ s/slapadd /slapadd -n1 /' /usr/local/bin/entrypoint.sh && exec /usr/local/bin/entrypoint.sh
+      - >-
+        sed -i -e "s#find /root/ldif -name '\*.ldif'#echo /root/ldif/1-domain.ldif#" -e '/prepopulate/,/^[[:space:]]*fi$/ s/slapadd /slapadd -n1 /' /usr/local/bin/entrypoint.sh &&
+        sed -i -e '/^access to \*$/,/^maxsize/ s/^[[:space:]]*by \* none$/        by users read/' -e '/^maxsize/a limits users size.soft=1 size.hard=1 size.pr=1 size.prtotal=unlimited' /root/slapd.conf &&
+        exec /usr/local/bin/entrypoint.sh
     environment:
       SLAPD_FQDN: example.test
       SLAPD_SUFFIX: dc=example,dc=test

@@ -1,4 +1,6 @@
 #include <HalonMTA.h>
+#include <cmath>
+#include <limits>
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -19,11 +21,17 @@ class MyLDAP
 class MyLDAPResult
 {
 	public:
-		MyLDAPResult(MyLDAP* _ldap, int _msgid);
+		MyLDAPResult(MyLDAP* _ldap, const std::string& _base, int _scope, const std::string& _filter, const std::vector<std::string>& _attrs, ber_int_t _pagesize);
 		~MyLDAPResult();
+		bool search(struct berval* cookie = nullptr);
 
 		MyLDAP* ldap;
 		int msgid;
+		std::string base;
+		int scope;
+		std::string filter;
+		std::vector<std::string> attrs;
+		ber_int_t pagesize;
 };
 
 void LDAP_object_free(void* ptr)
@@ -54,6 +62,7 @@ void LDAPResult_class_next(HalonHSLContext* hhc, HalonHSLArguments* args, HalonH
 	if (l->ldap->ld == nullptr)
 		return;
 
+next_result:
 	LDAPMessage* result = nullptr;
 	int r = ldap_result(l->ldap->ld, l->msgid, 0, nullptr, &result);
 	if (r == 0)
@@ -63,6 +72,66 @@ void LDAPResult_class_next(HalonHSLContext* hhc, HalonHSLArguments* args, HalonH
 
 	if (r == LDAP_RES_SEARCH_RESULT)
 	{
+		if (l->pagesize > 0)
+		{
+			int result_error = LDAP_SUCCESS;
+			LDAPControl** controls = nullptr;
+			r = ldap_parse_result(l->ldap->ld, result, &result_error, nullptr, nullptr, nullptr, &controls, 0);
+			if (r != LDAP_SUCCESS)
+			{
+				l->ldap->error = r;
+				ldap_msgfree(result);
+				return;
+			}
+
+			if (result_error != LDAP_SUCCESS)
+			{
+				l->ldap->error = result_error;
+				if (controls)
+					ldap_controls_free(controls);
+				ldap_msgfree(result);
+				return;
+			}
+
+			LDAPControl* page_control = controls ? ldap_control_find(LDAP_CONTROL_PAGEDRESULTS, controls, nullptr) : nullptr;
+			if (!page_control)
+			{
+				if (controls)
+					ldap_controls_free(controls);
+				ldap_msgfree(result);
+				bool f = false;
+				HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_BOOLEAN, &f, 0);
+				return;
+			}
+
+			struct berval cookie = { 0, nullptr };
+			r = ldap_parse_pageresponse_control(l->ldap->ld, page_control, nullptr, &cookie);
+			ldap_controls_free(controls);
+			ldap_msgfree(result);
+			if (r != LDAP_SUCCESS)
+			{
+				l->ldap->error = r;
+				if (cookie.bv_val)
+					ldap_memfree(cookie.bv_val);
+				return;
+			}
+
+			if (cookie.bv_len)
+			{
+				bool success = l->search(&cookie);
+				ldap_memfree(cookie.bv_val);
+				if (!success)
+					return;
+				goto next_result;
+			}
+
+			if (cookie.bv_val)
+				ldap_memfree(cookie.bv_val);
+			bool f = false;
+			HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_BOOLEAN, &f, 0);
+			return;
+		}
+
 		ldap_msgfree(result);
 		bool f = false;
 		HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_BOOLEAN, &f, 0);
@@ -153,7 +222,8 @@ void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 
 	std::string filter;
 	int scope = LDAP_SCOPE_SUBTREE;
-	const char** attrs = nullptr;
+	std::vector<std::string> attrs;
+	ber_int_t pagesize = 0;
 
 	HalonHSLValue* opts = HalonMTA_hsl_argument_get(args, 1);
 	if (opts)
@@ -193,47 +263,46 @@ void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 				else
 					return;
 			}
+			if (strcmp(opt, "pagesize") == 0)
+			{
+				double val;
+				if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_NUMBER ||
+					!HalonMTA_hsl_value_get(v, HALONMTA_HSL_TYPE_NUMBER, &val, nullptr))
+					continue;
+				if (val < 1 || val > static_cast<double>(std::numeric_limits<ber_int_t>::max()) || val != std::floor(val))
+					return;
+				pagesize = static_cast<ber_int_t>(val);
+			}
 			if (strcmp(opt, "attributes") == 0)
 			{
 				if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_ARRAY)
 					continue;
-				size_t length = HalonMTA_hsl_value_array_length(v);
-				attrs = new const char*[length + 1];
-
 				HalonHSLValue *val2;
-				size_t ia = 0, ib = 0;
-				while ((val2 = HalonMTA_hsl_value_array_get(v, ib++, nullptr)))
+				size_t i = 0;
+				while ((val2 = HalonMTA_hsl_value_array_get(v, i++, nullptr)))
 				{
 					char* val;
 					size_t vallen;
 					if (HalonMTA_hsl_value_type(val2) != HALONMTA_HSL_TYPE_STRING ||
 						!HalonMTA_hsl_value_get(val2, HALONMTA_HSL_TYPE_STRING, &val, &vallen))
 						continue;
-					attrs[ia++] = val;
+					attrs.emplace_back(val, vallen);
 				}
-				attrs[ia++] = nullptr;
 			}
 		}
 	}
 
-	int msgidp;
-	int r = ldap_search_ext(
-			l->ld,
-			base,
-			scope,
-			filter.empty() ? nullptr : filter.c_str(),
-			(char**)attrs, 0, nullptr, nullptr, nullptr, LDAP_NO_LIMIT, &msgidp);
-	delete [] attrs;
-	if (r != LDAP_SUCCESS)
+	MyLDAPResult* result = new MyLDAPResult(l, std::string(base, baselen), scope, filter, attrs, pagesize);
+	if (!result->search())
 	{
-		l->error = r;
+		delete result;
 		return;
 	}
 
 	HalonHSLObject* object = HalonMTA_hsl_object_new();
 	HalonMTA_hsl_object_type_set(object, "LDAPResult");
 	HalonMTA_hsl_object_register_function(object, "next", &LDAPResult_class_next);
-	HalonMTA_hsl_object_ptr_set(object, new MyLDAPResult(l, msgidp), LDAPResult_object_free);
+	HalonMTA_hsl_object_ptr_set(object, result, LDAPResult_object_free);
 	HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_OBJECT, object, 0);
 	HalonMTA_hsl_object_delete(object);
 }
@@ -757,11 +826,59 @@ MyLDAP::~MyLDAP()
 	ld = nullptr;
 }
 
-MyLDAPResult::MyLDAPResult(MyLDAP* _ldap, int _msgid)
+MyLDAPResult::MyLDAPResult(MyLDAP* _ldap, const std::string& _base, int _scope, const std::string& _filter, const std::vector<std::string>& _attrs, ber_int_t _pagesize)
 : ldap(_ldap)
-, msgid(_msgid)
+, msgid(-1)
+, base(_base)
+, scope(_scope)
+, filter(_filter)
+, attrs(_attrs)
+, pagesize(_pagesize)
 {
 	++ldap->ref;
+}
+
+bool MyLDAPResult::search(struct berval* cookie)
+{
+	std::vector<char*> attrsp;
+	if (!attrs.empty())
+	{
+		for (std::string& attr : attrs)
+			attrsp.push_back((char*)attr.c_str());
+		attrsp.push_back(nullptr);
+	}
+
+	LDAPControl* page_control = nullptr;
+	LDAPControl* server_controls[] = { nullptr, nullptr };
+	if (pagesize > 0)
+	{
+		int r = ldap_create_page_control(ldap->ld, pagesize, cookie, 0, &page_control);
+		if (r != LDAP_SUCCESS)
+		{
+			ldap->error = r;
+			return false;
+		}
+		server_controls[0] = page_control;
+	}
+
+	int msgidp;
+	int r = ldap_search_ext(
+			ldap->ld,
+			base.c_str(),
+			scope,
+			filter.empty() ? nullptr : filter.c_str(),
+			attrsp.empty() ? nullptr : attrsp.data(), 0,
+			page_control ? server_controls : nullptr, nullptr, nullptr, LDAP_NO_LIMIT, &msgidp);
+	if (page_control)
+		ldap_control_free(page_control);
+	if (r != LDAP_SUCCESS)
+	{
+		ldap->error = r;
+		return false;
+	}
+
+	msgid = msgidp;
+	return true;
 }
 
 MyLDAPResult::~MyLDAPResult()

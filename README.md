@@ -115,6 +115,7 @@ The following options are available in the options array.
 - scope `string` - The search scope, available scopes are `sub` (subtree), `one` (onelevel) and `base`. The default is `sub`.
 - filter `string` - The search filter. The default is `(objectclass=*)`.
 - attributes `array` - Array of attributes to fetch. The default is to fetch all.
+- pagesize `number` - The page size. The default is no page size specified.
 
 **Returns**: A LDAP result class
 
