@@ -27,3 +27,48 @@ assert_equal("Test 4", $jane["uid"], ["jane"]);
 assert_equal("Test 5", $jane["cn"], ["Jane Doe"]);
 assert_equal("Test 6", $jane["mail"], ["jane@example.test"]);
 assert_equal("Test 7", $result->next(), false);
+
+// Bind to Jane's account (Since admin has no size limit)
+$ldap = LDAP("ldap://ldap:389");
+if (!$ldap->bind("uid=jane,ou=people,dc=example,dc=test", "jane"))
+    throw Exception("Test 8: FAILED\n" . LDAP::err2string($ldap->errno()));
+echo "Test 8: OK";
+
+// This should only return one entry even though two exist since Jane's account has a max size limit of 1
+$result = $ldap->search("ou=people,dc=example,dc=test", [
+    "scope" => "sub",
+    "filter" => "(uid=*)",
+]);
+if (!$result)
+    throw Exception("Test 9: FAILED\n" . LDAP::err2string($ldap->errno()));
+echo "Test 9: OK";
+$count = 0;
+while ($result->next())
+    ++$count;
+assert_equal("Test 10", $count, 1);
+
+// When using a page size of 1 both entries should be returned
+$result = $ldap->search("ou=people,dc=example,dc=test", [
+    "scope" => "sub",
+    "filter" => "(uid=*)",
+    "pagesize" => 1
+]);
+if (!$result)
+    throw Exception("Test 11: FAILED\n" . LDAP::err2string($ldap->errno()));
+echo "Test 11: OK";
+$count = 0;
+while ($result->next())
+    ++$count;
+assert_equal("Test 12", $count, 2);
+
+// When using a page size larger than the max size limit, the search should fail
+$result = $ldap->search("ou=people,dc=example,dc=test", [
+    "scope" => "sub",
+    "filter" => "(uid=*)",
+    "pagesize" => 2
+]);
+if (!$result)
+    throw Exception("Test 13: FAILED\n" . LDAP::err2string($ldap->errno()));
+echo "Test 13: OK";
+assert_equal("Test 14", $result->next(), none);
+assert_equal("Test 15", LDAP::err2string($ldap->errno()), "Administrative limit exceeded");
