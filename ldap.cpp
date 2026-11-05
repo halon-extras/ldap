@@ -732,6 +732,11 @@ void LDAP_str2dn(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* r
 		return;
 
 	HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_ARRAY, nullptr, 0);
+
+	// ldap_str2dn() returns LDAP_SUCCESS with dn == nullptr for an empty DN
+	if (!dn)
+		return;
+
 	HalonHSLValue *key, *val;
 
 	double di0 = 0;

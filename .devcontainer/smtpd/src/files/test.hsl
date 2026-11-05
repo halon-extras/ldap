@@ -72,3 +72,7 @@ if (!$result)
 echo "Test 13: OK";
 assert_equal("Test 14", $result->next(), none);
 assert_equal("Test 15", LDAP::err2string($ldap->errno()), "Administrative limit exceeded");
+
+// An empty DN is valid and should parse to an empty array (used to crash)
+assert_equal("Test 16", LDAP::str2dn(""), []);
+assert_equal("Test 17", LDAP::str2dn("cn=admin,dc=example,dc=test"), [["cn", "admin"], ["dc", "example"], ["dc", "test"]]);
