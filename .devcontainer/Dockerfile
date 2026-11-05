@@ -4,10 +4,8 @@ LABEL org.opencontainers.image.authors="support@halon.io"
 ARG HALON_REPO_USER
 ARG HALON_REPO_PASS
 
-RUN apt-get update
-
-RUN apt-get install -y wget gnupg
-RUN apt-get install -y apt-transport-https
+RUN apt-get update && apt-get install -y wget gnupg
+RUN apt-get update && apt-get install -y apt-transport-https
 
 RUN wget -qO - https://raw.githubusercontent.com/halon/changelog/master/pgp-keys/7F0A73B5.asc | apt-key add -
 RUN echo "deb https://repo.halon.io/ noble stable" >> /etc/apt/sources.list.d/halon.list
@@ -17,10 +15,10 @@ RUN apt-get update && apt-get install -y halon=6.3.0
 RUN /usr/bin/install -d /var/run/halon
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
-RUN apt-get install -y build-essential cmake git libssl-dev libldap2-dev
+RUN apt-get update && apt-get install -y build-essential cmake git libssl-dev libldap2-dev
 
 RUN echo -n "UBU2404" > /OSRELEASE.txt
 
-RUN apt-get install -y supervisor
+RUN apt-get update && apt-get install -y supervisor
 COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 CMD ["/usr/bin/supervisord"]
