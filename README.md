@@ -114,7 +114,7 @@ The following options are available in the options array.
 - scope `string` - The search scope, available scopes are `sub` (subtree), `one` (onelevel) and `base`. The default is `sub`.
 - filter `string` - The search filter. The default is `(objectclass=*)`.
 - attributes `array` - Array of attributes to fetch. The default is to fetch all.
-- pagesize `number` - The page size. If no page size is specified only the first batch of entries will be returned.
+- pagesize `number` - The page size. If no page size is specified only the first batch of entries will be returned (if the server's size limit is exceeded, `next()` returns `none` after the last entry).
 
 **Returns**: A LDAP result class
 
@@ -205,15 +205,21 @@ Values are escaped, but attribute types cannot be. An attribute type must theref
 A LDAP result iterable object which holds the result from an LDAP search.
 
 #### next()
-Return the next result. If there are no more results `false` is returned, and on error `none` is returned.
+Return the next result. If there are no more results `false` is returned, and on error `none` is returned. An error may occur after some entries have already been returned (eg. if a size limit was exceeded or the `timeout` expired), so check for `none` after the last entry and use the `LDAP` object's `errno()` to get the error. After an error, `none` is returned on every call (and `errno()` is set to the error again). Search continuation references (references to other servers that may hold more entries) are skipped.
 
 **Returns**: entry data
 
-**Return type**: `array` or `none`
+**Return type**: `array`, `false` or `none`
 
 ```
 $result = $ldap->search("dc=example,dc=com");
-if ($result)
+if (!$result)
+  echo LDAP::err2string($ldap->errno());
+else
+{
   while ($entry = $result->next())
     echo $entry;
+  if ($entry === none)
+    echo LDAP::err2string($ldap->errno());
+}
 ```

@@ -233,10 +233,10 @@
                     "required": [],
                     "optional": []
                 },
-                "returnType": "array or none",
-                "detail": "LDAPResult->next(): array or none",
+                "returnType": "array, false or none",
+                "detail": "LDAPResult->next(): array, false or none",
                 "value": "next()",
-                "documentation": "Return the next result. If there are no more results false is returned, and on error none is returned.",
+                "documentation": "Return the next result. If there are no more results false is returned, and on error none is returned. An error may occur after some entries have already been returned, so check for none after the last entry and use the LDAP object's errno() to get the error. After an error, none is returned on every call (and errno() is set to the error again). Search continuation references (references to other servers that may hold more entries) are skipped.",
                 "link": "[Full documentation](https://github.com/halon-extras/ldap)"
             }
         ],

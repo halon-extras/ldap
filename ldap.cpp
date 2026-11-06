@@ -32,6 +32,8 @@ class MyLDAPResult
 		std::string filter;
 		std::vector<std::string> attrs;
 		ber_int_t pagesize;
+		bool done = false;
+		int done_error = LDAP_SUCCESS;
 };
 
 void LDAP_object_free(void* ptr)
@@ -49,6 +51,21 @@ void LDAPResult_object_free(void* ptr)
 	delete lr;
 }
 
+// The search is complete. On error none is returned on this and every later call to next() (with errno set
+// again, in case another operation has changed it), otherwise false (no more results)
+static void LDAPResult_finish(MyLDAPResult* l, int error, HalonHSLValue* ret)
+{
+	l->done = true;
+	l->done_error = error;
+	if (error != LDAP_SUCCESS)
+	{
+		l->ldap->error = error;
+		return;
+	}
+	bool f = false;
+	HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_BOOLEAN, &f, 0);
+}
+
 void LDAPResult_class_next(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* ret)
 {
 	if (HalonMTA_hsl_argument_length(args))
@@ -59,94 +76,97 @@ void LDAPResult_class_next(HalonHSLContext* hhc, HalonHSLArguments* args, HalonH
 	}
 
 	MyLDAPResult* l = (MyLDAPResult*)HalonMTA_hsl_object_ptr_get(hhc);
-	if (l->ldap->ld == nullptr)
+
+	// Calling ldap_result() again for a complete search would block forever
+	if (l->done)
+	{
+		LDAPResult_finish(l, l->done_error, ret);
 		return;
+	}
+
+	if (l->ldap->ld == nullptr)
+	{
+		// The connection was unbound before the search was complete
+		LDAPResult_finish(l, LDAP_SERVER_DOWN, ret);
+		return;
+	}
 
 next_result:
 	LDAPMessage* result = nullptr;
 	int r = ldap_result(l->ldap->ld, l->msgid, 0, nullptr, &result);
 	if (r == 0)
+	{
+		// Timeout (the timeout option), give up on the search like libldap's synchronous functions do
+		ldap_abandon_ext(l->ldap->ld, l->msgid, nullptr, nullptr);
+		LDAPResult_finish(l, LDAP_TIMEOUT, ret);
 		return;
+	}
 	if (r == -1)
+	{
+		// Connection or local error (eg. the connection was lost), the search can't continue
+		int error = LDAP_OTHER;
+		if (ldap_get_option(l->ldap->ld, LDAP_OPT_RESULT_CODE, &error) != LDAP_OPT_SUCCESS || error == LDAP_SUCCESS)
+			error = LDAP_OTHER;
+		LDAPResult_finish(l, error, ret);
 		return;
+	}
+
+	// Skip search continuation references (references to other servers, eg. from Active Directory) and intermediate responses, they are not entries
+	if (r == LDAP_RES_SEARCH_REFERENCE || r == LDAP_RES_INTERMEDIATE)
+	{
+		ldap_msgfree(result);
+		goto next_result;
+	}
 
 	if (r == LDAP_RES_SEARCH_RESULT)
 	{
-		if (l->pagesize > 0)
+		// The result code must always be checked, the search may have failed (eg. no such object or a size limit exceeded)
+		int result_error = LDAP_SUCCESS;
+		LDAPControl** controls = nullptr;
+		r = ldap_parse_result(l->ldap->ld, result, &result_error, nullptr, nullptr, nullptr, &controls, 0);
+		ldap_msgfree(result);
+		if (r != LDAP_SUCCESS)
+			result_error = r;
+
+		bool next_page = false;
+		if (result_error == LDAP_SUCCESS && l->pagesize > 0)
 		{
-			int result_error = LDAP_SUCCESS;
-			LDAPControl** controls = nullptr;
-			r = ldap_parse_result(l->ldap->ld, result, &result_error, nullptr, nullptr, nullptr, &controls, 0);
-			if (r != LDAP_SUCCESS)
-			{
-				l->ldap->error = r;
-				ldap_msgfree(result);
-				return;
-			}
-
-			if (result_error != LDAP_SUCCESS)
-			{
-				l->ldap->error = result_error;
-				if (controls)
-					ldap_controls_free(controls);
-				ldap_msgfree(result);
-				return;
-			}
-
 			LDAPControl* page_control = controls ? ldap_control_find(LDAP_CONTROL_PAGEDRESULTS, controls, nullptr) : nullptr;
-			if (!page_control)
-			{
-				l->ldap->error = LDAP_CONTROL_NOT_FOUND;
-				if (controls)
-					ldap_controls_free(controls);
-				ldap_msgfree(result);
-				return;
-			}
-
 			struct berval cookie = { 0, nullptr };
-			r = ldap_parse_pageresponse_control(l->ldap->ld, page_control, nullptr, &cookie);
-			ldap_controls_free(controls);
-			ldap_msgfree(result);
-			if (r != LDAP_SUCCESS)
-			{
-				l->ldap->error = r;
-				if (cookie.bv_val)
-					ldap_memfree(cookie.bv_val);
-				return;
-			}
+			if (!page_control)
+				result_error = LDAP_CONTROL_NOT_FOUND;
+			else
+				result_error = ldap_parse_pageresponse_control(l->ldap->ld, page_control, nullptr, &cookie);
 
-			if (cookie.bv_len)
+			if (result_error == LDAP_SUCCESS && cookie.bv_len)
 			{
-				bool success = l->search(&cookie);
-				ldap_memfree(cookie.bv_val);
-				if (!success)
-					return;
-				goto next_result;
+				if (l->search(&cookie))
+					next_page = true;
+				else
+					result_error = l->ldap->error;
 			}
 
 			if (cookie.bv_val)
 				ldap_memfree(cookie.bv_val);
-			bool f = false;
-			HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_BOOLEAN, &f, 0);
-			return;
 		}
 
-		ldap_msgfree(result);
-		bool f = false;
-		HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_BOOLEAN, &f, 0);
+		if (controls)
+			ldap_controls_free(controls);
+
+		if (next_page)
+			goto next_result;
+
+		LDAPResult_finish(l, result_error, ret);
 		return;
 	}
 
 	LDAPMessage* e = ldap_first_entry(l->ldap->ld, result);
 	if (!e)
 	{
+		// Not a search response (should not happen), the search can't continue
 		ldap_msgfree(result);
-		return;
-	}
-
-	if (ldap_msgtype(e) != LDAP_RES_SEARCH_ENTRY)
-	{
-		ldap_msgfree(result);
+		ldap_abandon_ext(l->ldap->ld, l->msgid, nullptr, nullptr);
+		LDAPResult_finish(l, LDAP_OTHER, ret);
 		return;
 	}
 

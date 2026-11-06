@@ -88,3 +88,48 @@ $results = [];
 foreach (["", "cn,dc=evil", "cn=x", "cn+uid", "c n", "cn;lang-en", "1cn", "-cn", "2.5.", ".2.5", "2..5", "cn\x00"] as $type)
     $results[] = LDAP::dn2str([["dc", "ok"], [$type, "x"]]);
 assert_equal("Test 21", $results, [none, none, none, none, none, none, none, none, none, none, none, none]);
+
+// The timeout makes a next() that blocks after the search is complete fail the test instead of hanging
+function connect_and_bind($dn, $password)
+{
+    $ldap = LDAP("ldap://ldap:389");
+    $ldap->setoption("timeout", 5);
+    if (!$ldap->bind($dn, $password))
+        throw Exception("Bind as " . $dn . ": FAILED\n" . LDAP::err2string($ldap->errno()));
+    return $ldap;
+}
+
+// A failed search must return none (not false, which means no more results) also without a page size
+$ldap = connect_and_bind("cn=admin,dc=example,dc=test", "admin");
+$result = $ldap->search("ou=nope,dc=example,dc=test");
+assert_equal("Test 22", $result->next(), none);
+assert_equal("Test 23", LDAP::err2string($ldap->errno()), "No such object");
+// The error is returned on every call, with errno set again (here after another operation failed with a bad filter)
+$ldap->search("dc=example,dc=test", ["filter" => "(bad"]);
+assert_equal("Test 24", [$result->next(), LDAP::err2string($ldap->errno())], [none, "No such object"]);
+
+// When the size limit is exceeded, the entries received are returned first, followed by none on every call
+$ldap = connect_and_bind("uid=jane,ou=people,dc=example,dc=test", "jane");
+$result = $ldap->search("ou=people,dc=example,dc=test", ["filter" => "(uid=*)"]);
+assert_equal("Test 25", [is_array($result->next()), $result->next()], [true, none]);
+assert_equal("Test 26", LDAP::err2string($ldap->errno()), "Size limit exceeded");
+assert_equal("Test 27", [$result->next(), $result->next(), LDAP::err2string($ldap->errno())], [none, none, "Size limit exceeded"]);
+
+// A successful search ends with false and no error, also when calling next() again (with and without a page size)
+$ldap = connect_and_bind("uid=jane,ou=people,dc=example,dc=test", "jane");
+$result = $ldap->search("ou=people,dc=example,dc=test", ["filter" => "(uid=jane)"]);
+assert_equal("Test 28", [$result->next()["uid"], $result->next(), $result->next()], [["jane"], false, false]);
+$result = $ldap->search("ou=people,dc=example,dc=test", ["filter" => "(uid=*)", "pagesize" => 1]);
+$count = 0;
+while ($result->next())
+    ++$count;
+assert_equal("Test 29", [$count, $result->next()], [2, false]);
+assert_equal("Test 30", $ldap->errno(), 0);
+
+// Unbinding before the search is complete is an error, which (like all errors) is returned on every call
+$ldap = connect_and_bind("cn=admin,dc=example,dc=test", "admin");
+$result = $ldap->search("ou=people,dc=example,dc=test", ["filter" => "(uid=*)"]);
+assert_equal("Test 31", is_array($result->next()), true);
+$ldap->unbind();
+assert_equal("Test 32", [$result->next(), $result->next()], [none, none]);
+assert_equal("Test 33", LDAP::err2string($ldap->errno()), "Can't contact LDAP server");
