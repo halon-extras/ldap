@@ -951,6 +951,10 @@ bool MyLDAPResult::search(struct berval* cookie)
 
 MyLDAPResult::~MyLDAPResult()
 {
+	// Abandon an unfinished search, otherwise the server keeps sending (and libldap keeps queuing) its results
+	if (!done && msgid != -1 && ldap->ld)
+		ldap_abandon_ext(ldap->ld, msgid, nullptr, nullptr);
+
 	if (ldap->ref == 1)
 		delete ldap;
 	else
