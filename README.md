@@ -21,7 +21,7 @@ yum install halon-extras-ldap
 These classes needs to be [imported](https://docs.halon.io/hsl/structures.html#import) from the `extras://ldap` module path.
 
 ### LDAP(uri)
-The LDAP class is a OpenLDAP wrapper class.
+The LDAP class is an OpenLDAP wrapper class.
 
 **Params**
 
@@ -124,7 +124,7 @@ The following options are available in the options array.
 - attributes `array` - Array of attributes to fetch. The default is to fetch all.
 - pagesize `number` - The page size. If no page size is specified only the first batch of entries will be returned (if the server's size limit is exceeded, `next()` returns `none` after the last entry).
 
-**Returns**: A LDAP result class
+**Returns**: An LDAP result class
 
 **Return type**: `LDAPResult` or `none`
 
@@ -143,7 +143,7 @@ Get the latest errno returned from the underlying OpenLDAP API.
 **Return type**: `number`
 
 #### getpeerx509()
-Get the peer certificate (X.509) as a `X509` instance. On error `none` is returned.
+Get the peer certificate (X.509) as an `X509` instance. On error `none` is returned.
 
 **Returns**: The peer certificate
 
@@ -181,13 +181,13 @@ $result = $ldap->search("dc=example,dc=com", ["filter" => "(cn=" . LDAP::filter_
 ```
 
 #### static str2dn(str)
-Parses the string representation of a distinguished name str into its components, returning an array of tupels. On error `none` is returned.
+Parses the string representation of a distinguished name str into its components, returning an array of tuples. On error `none` is returned.
 
 **Params**
 
 - str `string` - String representation of a DN
 
-**Returns**: Array of tupels
+**Returns**: Array of tuples
 
 **Return type**: `array` or `none`
 
@@ -203,14 +203,14 @@ Values are escaped, but attribute types cannot be. An attribute type must theref
 
 **Params**
 
-- dn `array` - Array of tupels
+- dn `array` - Array of tuples
 
 **Returns**: String representation of the DN
 
 **Return type**: `string` or `none`
 
 ### LDAPResult
-A LDAP result iterable object which holds the result from an LDAP search.
+An LDAP result iterable object which holds the result from an LDAP search.
 
 #### next()
 Return the next result. If there are no more results `false` is returned, and on error `none` is returned. An error may occur after some entries have already been returned (eg. if a size limit was exceeded or the `timeout` expired), so check for `none` after the last entry and use the `LDAP` object's `errno()` to get the error. After an error, `none` is returned on every call (and `errno()` is set to the error again). Search continuation references (references to other servers that may hold more entries) are skipped.

@@ -138,7 +138,7 @@
                 "returnType": "X509 or none",
                 "detail": "LDAP->getpeerx509(): X509 or none",
                 "value": "getpeerx509()",
-                "documentation": "Get the peer certificate (X.509) as a X509 instance. On error none is returned.",
+                "documentation": "Get the peer certificate (X.509) as an X509 instance. On error none is returned.",
                 "link": "[Full documentation](https://github.com/halon-extras/ldap)"
             },
             {
@@ -192,7 +192,7 @@
                 "returnType": "array or none",
                 "detail": "LDAP::str2dn(string $str): array or none",
                 "value": "str2dn($0)",
-                "documentation": "Parses the string representation of a distinguished name str into its components, returning an array of tupels. On error none is returned.",
+                "documentation": "Parses the string representation of a distinguished name str into its components, returning an array of tuples. On error none is returned.",
                 "link": "[Full documentation](https://github.com/halon-extras/ldap)"
             },
             {
@@ -210,13 +210,13 @@
                 "returnType": "string or none",
                 "detail": "LDAP::dn2str(array $dn): string or none",
                 "value": "dn2str($0)",
-                "documentation": "Performs the inverse operation of LDAP.str2dn(), returning a string representation of dn with the necessary escaping. On error none is returned.",
+                "documentation": "Performs the inverse operation of LDAP::str2dn(), returning a string representation of dn with the necessary escaping. On error none is returned.",
                 "link": "[Full documentation](https://github.com/halon-extras/ldap)"
             }
         ],
         "detail": "LDAP(string $uri)",
         "value": "LDAP($0)",
-        "documentation": "The LDAP class is a OpenLDAP wrapper class. The URI should be in the format of ldap:\/\/ or ldaps:\/\/. Multiple hosts may be given separated by space.",
+        "documentation": "The LDAP class is an OpenLDAP wrapper class. The URI should be in the format of ldap:\/\/ or ldaps:\/\/. Multiple hosts may be given separated by space.",
         "link": "[Full documentation](https://github.com/halon-extras/ldap)"
     },
     {
@@ -242,7 +242,7 @@
         ],
         "detail": "LDAPResult()",
         "value": "LDAPResult()",
-        "documentation": "A LDAP result iterable object which holds the result from an LDAP search.",
+        "documentation": "An LDAP result iterable object which holds the result from an LDAP search.",
         "link": "[Full documentation](https://github.com/halon-extras/ldap)"
     }
 ]
