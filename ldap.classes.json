@@ -102,7 +102,7 @@
                 "returnType": "LDAPResult or none",
                 "detail": "LDAP->search(string $basedn [, array $options]): LDAPResult or none",
                 "value": "search($0)",
-                "documentation": "Search LDAP connection in the current base and subtree. On error none is returned.",
+                "documentation": "Search the directory from the base DN, in the scope given by the scope option (the whole subtree by default). On error none is returned.",
                 "link": "[Full documentation](https://github.com/halon-extras/ldap)"
             },
             {
@@ -236,7 +236,7 @@
                 "returnType": "array, false or none",
                 "detail": "LDAPResult->next(): array, false or none",
                 "value": "next()",
-                "documentation": "Return the next result. If there are no more results false is returned, and on error none is returned. An error may occur after some entries have already been returned, so check for none after the last entry and use the LDAP object's errno() to get the error. After an error, none is returned on every call (and errno() is set to the error again). Search continuation references (references to other servers that may hold more entries) are skipped.",
+                "documentation": "Return the next result. If there are no more results false is returned, and on error none is returned. An error may occur after some entries have already been returned, so check for none after the last entry and use the LDAP object's errno() to get the error. After an error, none is returned on every call (and errno() is set to the error again). Search continuation references (references to other servers that may hold more entries) are skipped. The timeout option limits each call as a whole.",
                 "link": "[Full documentation](https://github.com/halon-extras/ldap)"
             }
         ],

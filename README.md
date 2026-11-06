@@ -110,7 +110,7 @@ if ($password == "" or !$ldap->bind($dn, $password))
 ```
 
 #### search(basedn [, options])
-Search LDAP connection in the current base and subtree. On error `none` is returned.
+Search the directory from the base DN, in the scope given by the `scope` option (the whole subtree by default). On error `none` is returned.
 
 **Params**
 
@@ -213,7 +213,7 @@ Values are escaped, but attribute types cannot be. An attribute type must theref
 An LDAP result iterable object which holds the result from an LDAP search.
 
 #### next()
-Return the next result. If there are no more results `false` is returned, and on error `none` is returned. An error may occur after some entries have already been returned (e.g. if a size limit was exceeded or the `timeout` expired), so check for `none` after the last entry and use the `LDAP` object's `errno()` to get the error. After an error, `none` is returned on every call (and `errno()` is set to the error again). Search continuation references (references to other servers that may hold more entries) are skipped.
+Return the next result. If there are no more results `false` is returned, and on error `none` is returned. An error may occur after some entries have already been returned (e.g. if a size limit was exceeded or the `timeout` expired), so check for `none` after the last entry and use the `LDAP` object's `errno()` to get the error. After an error, `none` is returned on every call (and `errno()` is set to the error again). Search continuation references (references to other servers that may hold more entries) are skipped. The `timeout` option limits each call as a whole.
 
 **Returns**: entry data
 

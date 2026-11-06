@@ -1,4 +1,5 @@
 #include <HalonMTA.h>
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <stdio.h>
@@ -101,9 +102,37 @@ void LDAPResult_class_next(HalonHSLContext* hhc, HalonHSLArguments* args, HalonH
 		return;
 	}
 
+	// The timeout option limits the whole call, also while skipping references and requesting more pages
+	// (otherwise a server that keeps sending those without any entries would keep the call running forever)
+	bool has_deadline = false;
+	std::chrono::steady_clock::time_point deadline;
+	struct timeval* timeout = nullptr;
+	if (ldap_get_option(l->ldap->ld, LDAP_OPT_TIMEOUT, &timeout) == LDAP_OPT_SUCCESS && timeout)
+	{
+		has_deadline = true;
+		deadline = std::chrono::steady_clock::now() + std::chrono::seconds(timeout->tv_sec) + std::chrono::microseconds(timeout->tv_usec);
+		ldap_memfree(timeout);
+	}
+	bool waited = false;
+
 next_result:
 	LDAPMessage* result = nullptr;
-	int r = ldap_result(l->ldap->ld, l->msgid, 0, nullptr, &result);
+	int r = 0;
+	if (!has_deadline)
+		r = ldap_result(l->ldap->ld, l->msgid, 0, nullptr, &result);
+	else
+	{
+		auto remaining = std::chrono::duration_cast<std::chrono::microseconds>(deadline - std::chrono::steady_clock::now()).count();
+		// Always wait (or poll) once, after that only until the deadline
+		if (!waited || remaining > 0)
+		{
+			if (remaining < 0)
+				remaining = 0;
+			struct timeval tv = { static_cast<time_t>(remaining / 1000000), static_cast<suseconds_t>(remaining % 1000000) };
+			r = ldap_result(l->ldap->ld, l->msgid, 0, &tv, &result);
+		}
+	}
+	waited = true;
 	if (r == 0)
 	{
 		// Timeout (the timeout option), give up on the search like libldap's synchronous functions do
