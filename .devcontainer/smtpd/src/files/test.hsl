@@ -133,3 +133,8 @@ assert_equal("Test 31", is_array($result->next()), true);
 $ldap->unbind();
 assert_equal("Test 32", [$result->next(), $result->next()], [none, none]);
 assert_equal("Test 33", LDAP::err2string($ldap->errno()), "Can't contact LDAP server");
+
+// str2dn is binary safe: an embedded NUL is an error (not truncated), and an escaped NUL (\00) is part of the value
+assert_equal("Test 34", LDAP::str2dn("uid=jane\x00,ou=evil,dc=test"), none);
+assert_equal("Test 35", LDAP::str2dn("cn=a\\00b,dc=test"), [["cn", "a\x00b"], ["dc", "test"]]);
+assert_equal("Test 36", LDAP::dn2str([["cn", "a\x00b"], ["dc", "test"]]), "cn=a\\00b,dc=test");

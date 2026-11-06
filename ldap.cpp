@@ -789,8 +789,10 @@ void LDAP_str2dn(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* r
 		return;
 	}
 
+	// ldap_bv2dn() uses the length, so a string with an embedded NUL fails (decoding error) instead of being truncated
 	LDAPDN dn = nullptr;
-	if (ldap_str2dn(param, &dn, LDAP_DN_FORMAT_LDAPV3) != LDAP_SUCCESS)
+	struct berval bv = { paramlen, param };
+	if (ldap_bv2dn(&bv, &dn, LDAP_DN_FORMAT_LDAPV3) != LDAP_SUCCESS)
 		return;
 
 	HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_ARRAY, nullptr, 0);
