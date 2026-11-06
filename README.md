@@ -136,7 +136,7 @@ Unbind the LDAP connection. On error `none` is returned.
 **Return type**: `LDAP` or `none`
 
 #### errno()
-Get the latest errno returned from the underlying OpenLDAP API.
+Get the latest errno returned from the underlying OpenLDAP API. When a method of the `LDAP` object (or its `LDAPResult`) returns `none`, the errno is set to the reason (eg. `-9` for an invalid parameter value).
 
 **Returns**: errno
 

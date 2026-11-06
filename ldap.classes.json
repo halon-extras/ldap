@@ -126,7 +126,7 @@
                 "returnType": "number",
                 "detail": "LDAP->errno(): number",
                 "value": "errno()",
-                "documentation": "Get the latest errno returned from the underlying OpenLDAP API.",
+                "documentation": "Get the latest errno returned from the underlying OpenLDAP API. When a method of the LDAP object (or its LDAPResult) returns none, the errno is set to the reason (eg. -9 for an invalid parameter value).",
                 "link": "[Full documentation](https://github.com/halon-extras/ldap)"
             },
             {

@@ -138,3 +138,56 @@ assert_equal("Test 33", LDAP::err2string($ldap->errno()), "Can't contact LDAP se
 assert_equal("Test 34", LDAP::str2dn("uid=jane\x00,ou=evil,dc=test"), none);
 assert_equal("Test 35", LDAP::str2dn("cn=a\\00b,dc=test"), [["cn", "a\x00b"], ["dc", "test"]]);
 assert_equal("Test 36", LDAP::dn2str([["cn", "a\x00b"], ["dc", "test"]]), "cn=a\\00b,dc=test");
+
+// errno is set whenever a method returns none. Each case uses a new LDAP object, so errno can't be left over from an earlier case.
+// A bad URI reports the error from ldap_initialize(), also on every call
+$ldap = LDAP("htp://nope");
+assert_equal("Test 37", [LDAP::err2string($ldap->errno()), $ldap->bind(), LDAP::err2string($ldap->errno())], ["Bad parameter to an ldap routine", none, "Bad parameter to an ldap routine"]);
+
+// Invalid parameter values
+$calls = [
+    "search base" => function ($l) { return $l->search(5); },
+    "search scope" => function ($l) { return $l->search("dc=example,dc=test", ["scope" => "subtree"]); },
+    "search pagesize" => function ($l) { return $l->search("dc=example,dc=test", ["pagesize" => 1.5]); },
+    "setoption name" => function ($l) { return $l->setoption(5, 1); },
+    "setoption unknown" => function ($l) { return $l->setoption("nope", 1); },
+    "setoption protocol_version" => function ($l) { return $l->setoption("protocol_version", "3"); },
+    "setoption referrals" => function ($l) { return $l->setoption("referrals", 1); },
+    "setoption network_timeout" => function ($l) { return $l->setoption("network_timeout", "5"); },
+    "setoption timeout" => function ($l) { return $l->setoption("timeout", "5"); },
+    "setoption timelimit" => function ($l) { return $l->setoption("timelimit", "5"); },
+    "setoption tls_verify_peer" => function ($l) { return $l->setoption("tls_verify_peer", 1); },
+    "getoption unknown" => function ($l) { return $l->getoption("nope"); },
+    "bind dn" => function ($l) { return $l->bind(5); },
+    "bind password" => function ($l) { return $l->bind("cn=admin,dc=example,dc=test", 5); }
+];
+$results = [];
+$expected = [];
+foreach ($calls as $name => $call)
+{
+    $ldap = LDAP("ldap://ldap:389");
+    $results[$name] = [$call($ldap), LDAP::err2string($ldap->errno())];
+    $expected[$name] = [none, "Bad parameter to an ldap routine"];
+}
+assert_equal("Test 38", $results, $expected);
+
+// After unbind() every method fails with "Can't contact LDAP server"
+$calls = [
+    "search" => function ($l) { return $l->search("dc=example,dc=test"); },
+    "bind" => function ($l) { return $l->bind(); },
+    "starttls" => function ($l) { return $l->starttls(); },
+    "setoption" => function ($l) { return $l->setoption("timelimit", 5); },
+    "getoption" => function ($l) { return $l->getoption("diagnostic_message"); },
+    "getpeerx509" => function ($l) { return $l->getpeerx509(); },
+    "unbind" => function ($l) { return $l->unbind(); }
+];
+$results = [];
+$expected = [];
+foreach ($calls as $name => $call)
+{
+    $ldap = connect_and_bind("cn=admin,dc=example,dc=test", "admin");
+    $ldap->unbind();
+    $results[$name] = [$call($ldap), LDAP::err2string($ldap->errno())];
+    $expected[$name] = [none, "Can't contact LDAP server"];
+}
+assert_equal("Test 39", $results, $expected);

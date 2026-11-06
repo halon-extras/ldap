@@ -16,6 +16,7 @@ class MyLDAP
 		ldap* ld;
 		size_t ref = 1;
 		int error;
+		int closed_error = LDAP_SERVER_DOWN; // errno when there is no connection (ldap_initialize() failed, or unbind() was called)
 };
 
 class MyLDAPResult
@@ -49,6 +50,15 @@ void LDAPResult_object_free(void* ptr)
 {
 	MyLDAPResult* lr = (MyLDAPResult*)ptr;
 	delete lr;
+}
+
+// If there is no connection, set errno to why
+static bool LDAP_closed(MyLDAP* l)
+{
+	if (l->ld != nullptr)
+		return false;
+	l->error = l->closed_error;
+	return true;
 }
 
 // The search is complete. On error none is returned on this and every later call to next() (with errno set
@@ -87,7 +97,7 @@ void LDAPResult_class_next(HalonHSLContext* hhc, HalonHSLArguments* args, HalonH
 	if (l->ldap->ld == nullptr)
 	{
 		// The connection was unbound before the search was complete
-		LDAPResult_finish(l, LDAP_SERVER_DOWN, ret);
+		LDAPResult_finish(l, l->ldap->closed_error, ret);
 		return;
 	}
 
@@ -227,7 +237,7 @@ void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
-	if (l->ld == nullptr)
+	if (LDAP_closed(l))
 		return;
 
 	HalonHSLValue* x = HalonMTA_hsl_argument_get(args, 0);
@@ -236,6 +246,7 @@ void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 	if (!x || HalonMTA_hsl_value_type(x) != HALONMTA_HSL_TYPE_STRING ||
 			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &base, &baselen))
 	{
+		l->error = LDAP_PARAM_ERROR;
 		return;
 	}
 
@@ -280,7 +291,10 @@ void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 				else if (strcmp(val, "base") == 0)
 					scope = LDAP_SCOPE_BASE;
 				else
+				{
+					l->error = LDAP_PARAM_ERROR;
 					return;
+				}
 			}
 			if (strcmp(opt, "pagesize") == 0)
 			{
@@ -289,7 +303,10 @@ void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 					!HalonMTA_hsl_value_get(v, HALONMTA_HSL_TYPE_NUMBER, &val, nullptr))
 					continue;
 				if (val < 1 || val > static_cast<double>(std::numeric_limits<ber_int_t>::max()) || val != std::floor(val))
+				{
+					l->error = LDAP_PARAM_ERROR;
 					return;
+				}
 				pagesize = static_cast<ber_int_t>(val);
 			}
 			if (strcmp(opt, "attributes") == 0)
@@ -341,7 +358,7 @@ void LDAP_class_getoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
-	if (l->ld == nullptr)
+	if (LDAP_closed(l))
 		return;
 
 	int r = 0;
@@ -363,6 +380,8 @@ void LDAP_class_getoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 			ldap_memfree(msg);
 		}
 	}
+	else
+		l->error = LDAP_PARAM_ERROR;
 }
 
 void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* ret)
@@ -375,7 +394,7 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
-	if (l->ld == nullptr)
+	if (LDAP_closed(l))
 		return;
 
 	HalonHSLValue* x = HalonMTA_hsl_argument_get(args, 0);
@@ -385,6 +404,7 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &param, &paramlen) ||
 			!HalonMTA_hsl_argument_get(args, 1))
 	{
+		l->error = LDAP_PARAM_ERROR;
 		return;
 	}
 
@@ -396,7 +416,10 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		double number;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_NUMBER ||
 			!HalonMTA_hsl_value_get(v, HALONMTA_HSL_TYPE_NUMBER, &number, nullptr))
+		{
+			l->error = LDAP_PARAM_ERROR;
 			return;
+		}
 		int pv = (int)number;
 		r = ldap_set_option(l->ld, LDAP_OPT_PROTOCOL_VERSION, &pv);
 	}
@@ -405,7 +428,10 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		bool b;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_BOOLEAN ||
 			!HalonMTA_hsl_value_get(v, HALONMTA_HSL_TYPE_BOOLEAN, &b, nullptr))
+		{
+			l->error = LDAP_PARAM_ERROR;
 			return;
+		}
 		r = ldap_set_option(l->ld, LDAP_OPT_REFERRALS, b ? LDAP_OPT_ON : LDAP_OPT_OFF);
 	}
 	else if (strcmp(param, "network_timeout") == 0)
@@ -413,7 +439,10 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		double number;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_NUMBER ||
 			!HalonMTA_hsl_value_get(v, HALONMTA_HSL_TYPE_NUMBER, &number, nullptr))
+		{
+			l->error = LDAP_PARAM_ERROR;
 			return;
+		}
 		struct timeval to = { (int)number, 0 };
 		r = ldap_set_option(l->ld, LDAP_OPT_NETWORK_TIMEOUT, &to);
 	}
@@ -422,7 +451,10 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		double number;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_NUMBER ||
 			!HalonMTA_hsl_value_get(v, HALONMTA_HSL_TYPE_NUMBER, &number, nullptr))
+		{
+			l->error = LDAP_PARAM_ERROR;
 			return;
+		}
 		struct timeval to = { (int)number, 0 };
 		r = ldap_set_option(l->ld, LDAP_OPT_TIMEOUT, &to);
 	}
@@ -431,7 +463,10 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		double number;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_NUMBER ||
 			!HalonMTA_hsl_value_get(v, HALONMTA_HSL_TYPE_NUMBER, &number, nullptr))
+		{
+			l->error = LDAP_PARAM_ERROR;
 			return;
+		}
 		int to = (int)number;
 		r = ldap_set_option(l->ld, LDAP_OPT_TIMELIMIT, &to);
 	}
@@ -440,7 +475,10 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		bool b;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_BOOLEAN ||
 			!HalonMTA_hsl_value_get(v, HALONMTA_HSL_TYPE_BOOLEAN, &b, nullptr))
+		{
+			l->error = LDAP_PARAM_ERROR;
 			return;
+		}
 		int val = b ? LDAP_OPT_X_TLS_DEMAND : LDAP_OPT_X_TLS_NEVER;
 		r = ldap_set_option(l->ld, LDAP_OPT_X_TLS_REQUIRE_CERT, &val);
 		if (r == LDAP_OPT_SUCCESS)
@@ -455,7 +493,10 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		bool b;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_BOOLEAN ||
 			!HalonMTA_hsl_value_get(v, HALONMTA_HSL_TYPE_BOOLEAN, &b, nullptr))
+		{
+			l->error = LDAP_PARAM_ERROR;
 			return;
+		}
 		if (b)
 		{
 			r = ldap_set_option(l->ld, LDAP_OPT_X_TLS_CACERTFILE, HALON_CA_FILE);
@@ -468,7 +509,10 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 	}
 #endif
 	else
+	{
+		l->error = LDAP_PARAM_ERROR;
 		return;
+	}
 
 	if (r != LDAP_SUCCESS)
 	{
@@ -489,7 +533,7 @@ void LDAP_class_bind(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValu
 	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
-	if (l->ld == nullptr)
+	if (LDAP_closed(l))
 		return;
 
 	std::string username;
@@ -501,7 +545,10 @@ void LDAP_class_bind(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValu
 		size_t paramlen;
 		if (HalonMTA_hsl_value_type(x) != HALONMTA_HSL_TYPE_STRING ||
 			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &param, &paramlen))
+		{
+			l->error = LDAP_PARAM_ERROR;
 			return;
+		}
 		username = std::string(param, paramlen);
 	}
 
@@ -511,7 +558,10 @@ void LDAP_class_bind(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValu
 	{
 		if (HalonMTA_hsl_value_type(x) != HALONMTA_HSL_TYPE_STRING ||
 			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &lp.bv_val, &lp.bv_len))
+		{
+			l->error = LDAP_PARAM_ERROR;
 			return;
+		}
 	}
 
 	int r = ldap_sasl_bind_s(l->ld, username.empty() ? nullptr : username.c_str(), LDAP_SASL_SIMPLE, &lp, nullptr, nullptr, nullptr);
@@ -535,7 +585,7 @@ void LDAP_class_unbind(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
-	if (l->ld == nullptr)
+	if (LDAP_closed(l))
 		return;
 
 	int r = ldap_unbind_ext(l->ld, nullptr, nullptr);
@@ -560,7 +610,7 @@ void LDAP_class_getpeerx509(HalonHSLContext* hhc, HalonHSLArguments* args, Halon
 	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
-	if (l->ld == nullptr)
+	if (LDAP_closed(l))
 		return;
 
 	char* engine = nullptr;
@@ -615,7 +665,7 @@ void LDAP_class_starttls(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSL
 	}
 
 	MyLDAP* l = (MyLDAP*)HalonMTA_hsl_object_ptr_get(hhc);
-	if (l->ld == nullptr)
+	if (LDAP_closed(l))
 		return;
 
 	int r = ldap_start_tls_s(l->ld, nullptr, nullptr);
@@ -870,8 +920,12 @@ MyLDAP::MyLDAP(const std::string& uri)
 : ld(nullptr)
 , error(0)
 {
-	if (ldap_initialize(&ld, uri.c_str()) != LDAP_SUCCESS)
+	int r = ldap_initialize(&ld, uri.c_str());
+	if (r != LDAP_SUCCESS)
+	{
 		ld = nullptr;
+		error = closed_error = r;
+	}
 	else
 	{
 		int v = LDAP_VERSION3;
