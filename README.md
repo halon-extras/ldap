@@ -101,6 +101,14 @@ Bind the LDAP connection. For anonymous bind, do not specify the credentials. On
 
 **Return type**: `LDAP` or `none`
 
+> [!WARNING]
+> A bind with a DN and an empty password is an "unauthenticated bind" (RFC 4513). Some servers (eg. Active Directory) accept it as an anonymous bind instead of rejecting it, so `bind()` succeeds. When using `bind()` to verify a user's password, always reject empty passwords first.
+
+```
+if ($password == "" or !$ldap->bind($dn, $password))
+    echo "Authentication failed";
+```
+
 #### search(basedn [, options])
 Search LDAP connection in the current base and subtree. On error `none` is returned.
 
