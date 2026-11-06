@@ -567,11 +567,11 @@ void LDAP_class_getpeerx509(HalonHSLContext* hhc, HalonHSLArguments* args, Halon
 	int r2 = ldap_get_option(l->ld, LDAP_OPT_X_TLS_PACKAGE, &engine);
 	if (r2 != LDAP_OPT_SUCCESS || !engine || strcmp(engine, "OpenSSL") != 0)
 	{
-		if (engine) free(engine);
+		if (engine) ldap_memfree(engine);
 		l->error = LDAP_OPT_ERROR;
 		return;
 	}
-	if (engine) free(engine);
+	if (engine) ldap_memfree(engine);
 
 	SSL* ssl = nullptr;
 	int r = ldap_get_option(l->ld, LDAP_OPT_X_TLS_SSL_CTX, &ssl);
@@ -674,7 +674,7 @@ void LDAP_filter_escape(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLV
 
 	ldap_bv2escaped_filter_value(&in, &ut);
 	HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_STRING, ut.bv_val, ut.bv_len);
-	free(ut.bv_val);
+	ldap_memfree(ut.bv_val);
 }
 
 // Attribute types cannot be escaped in a DN, so only allow a descr (ALPHA *(ALPHA / DIGIT / "-")) or a numeric OID
@@ -715,7 +715,8 @@ void LDAP_dn2str(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* r
 		return;
 	}
 
-	LDAPDN dn = (LDAPRDN*)malloc(sizeof(LDAPRDN) * (HalonMTA_hsl_value_array_length(x) + 1));
+	// Allocated with libldap's allocator, since it's freed with ldap_dnfree()
+	LDAPDN dn = (LDAPRDN*)ldap_memalloc(sizeof(LDAPRDN) * (HalonMTA_hsl_value_array_length(x) + 1));
 
 	HalonHSLValue *k, *v;
 	size_t i = 0;
@@ -730,8 +731,8 @@ void LDAP_dn2str(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* r
 			goto free;
 		}
 
-		dn[i] = (LDAPAVA**)malloc(sizeof(LDAPAVA*) * 2);
-		dn[i][0] = (LDAPAVA*)malloc(sizeof(LDAPAVA));
+		dn[i] = (LDAPAVA**)ldap_memalloc(sizeof(LDAPAVA*) * 2);
+		dn[i][0] = (LDAPAVA*)ldap_memalloc(sizeof(LDAPAVA));
 		dn[i][0]->la_attr.bv_val = nullptr;
 		dn[i][0]->la_value.bv_val = nullptr;
 		// la_attr/la_value will point to HSL owned memory, so ldap_dnfree() must not free them (no LDAP_AVA_FREE_* flags)
@@ -771,7 +772,7 @@ free:
 	if (r != LDAP_SUCCESS)
 		return;
 	HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_STRING, result, 0);
-	free(result);
+	ldap_memfree(result);
 }
 
 void LDAP_str2dn(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* ret)
