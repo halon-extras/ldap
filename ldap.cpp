@@ -651,6 +651,33 @@ void LDAP_filter_escape(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLV
 	free(ut.bv_val);
 }
 
+// Attribute types cannot be escaped in a DN, so only allow a descr (ALPHA *(ALPHA / DIGIT / "-")) or a numeric OID
+static bool is_valid_attribute_type(const char* s, size_t len)
+{
+	auto alpha = [](char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); };
+	auto digit = [](char c) { return c >= '0' && c <= '9'; };
+
+	if (len == 0)
+		return false;
+
+	if (alpha(s[0]))
+	{
+		for (size_t i = 1; i < len; ++i)
+			if (!alpha(s[i]) && !digit(s[i]) && s[i] != '-')
+				return false;
+		return true;
+	}
+
+	for (size_t i = 0; i < len; ++i)
+	{
+		if (digit(s[i]))
+			continue;
+		if (s[i] != '.' || i == 0 || i == len - 1 || s[i - 1] == '.')
+			return false;
+	}
+	return true;
+}
+
 void LDAP_dn2str(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* ret)
 {
 	HalonHSLValue* x = HalonMTA_hsl_argument_get(args, 0);
@@ -681,6 +708,9 @@ void LDAP_dn2str(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* r
 		dn[i][0] = (LDAPAVA*)malloc(sizeof(LDAPAVA));
 		dn[i][0]->la_attr.bv_val = nullptr;
 		dn[i][0]->la_value.bv_val = nullptr;
+		// la_attr/la_value will point to HSL owned memory, so ldap_dnfree() must not free them (no LDAP_AVA_FREE_* flags)
+		dn[i][0]->la_flags = LDAP_AVA_STRING;
+		dn[i][0]->la_private = nullptr;
 		dn[i][1] = nullptr;
 
 		v1 = HalonMTA_hsl_value_array_get(v, 0, nullptr);
@@ -694,7 +724,12 @@ void LDAP_dn2str(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValue* r
 		HalonMTA_hsl_value_get(v1, HALONMTA_HSL_TYPE_STRING, &dn[i][0]->la_attr.bv_val, &dn[i][0]->la_attr.bv_len);
 		HalonMTA_hsl_value_get(v2, HALONMTA_HSL_TYPE_STRING, &dn[i][0]->la_value.bv_val, &dn[i][0]->la_value.bv_len);
 
-		dn[i][0]->la_flags = LDAP_AVA_STRING;
+		if (!is_valid_attribute_type(dn[i][0]->la_attr.bv_val, dn[i][0]->la_attr.bv_len))
+		{
+			dn[i + 1] = nullptr;
+			goto free;
+		}
+
 		++i;
 		continue;
 free:

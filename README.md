@@ -192,6 +192,8 @@ echo LDAP::str2dn("cn=admin,dc=example,dc=org");
 #### static dn2str(dn)
 Performs the inverse operation of `str2dn()`, returning a string representation of dn with the necessary escaping. On error `none` is returned.
 
+Values are escaped, but attribute types cannot be. An attribute type must therefore be a name (eg. `cn`) or a numeric OID (eg. `2.5.4.3`), otherwise `none` is returned.
+
 **Params**
 
 - dn `array` - Array of tupels

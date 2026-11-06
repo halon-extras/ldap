@@ -76,3 +76,15 @@ assert_equal("Test 15", LDAP::err2string($ldap->errno()), "Administrative limit 
 // An empty DN is valid and should parse to an empty array (used to crash)
 assert_equal("Test 16", LDAP::str2dn(""), []);
 assert_equal("Test 17", LDAP::str2dn("cn=admin,dc=example,dc=test"), [["cn", "admin"], ["dc", "example"], ["dc", "test"]]);
+
+// dn2str escapes values and round-trips with str2dn
+$dn = [["cn", "a,b+c=d\"e\\f<g>h;i"], ["dc", "test"]];
+assert_equal("Test 18", LDAP::dn2str($dn), "cn=a\\2Cb\\2Bc\\3Dd\\22e\\5Cf\\3Cg\\3Eh\\3Bi,dc=test");
+assert_equal("Test 19", LDAP::str2dn(LDAP::dn2str($dn)), $dn);
+assert_equal("Test 20", LDAP::dn2str([["2.5.4.3", "x"], ["x-Attr2", "y"]]), "2.5.4.3=x,x-Attr2=y");
+
+// Attribute types cannot be escaped, so invalid ones must be rejected (not injected into the DN)
+$results = [];
+foreach (["", "cn,dc=evil", "cn=x", "cn+uid", "c n", "cn;lang-en", "1cn", "-cn", "2.5.", ".2.5", "2..5", "cn\x00"] as $type)
+    $results[] = LDAP::dn2str([["dc", "ok"], [$type, "x"]]);
+assert_equal("Test 21", $results, [none, none, none, none, none, none, none, none, none, none, none, none]);
