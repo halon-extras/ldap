@@ -722,8 +722,10 @@ void LDAP_filter_escape(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLV
 		return;
 	}
 
-	ldap_bv2escaped_filter_value(&in, &ut);
-	HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_STRING, ut.bv_val, ut.bv_len);
+	if (ldap_bv2escaped_filter_value(&in, &ut) != 0)
+		return;
+	// An empty value is escaped to an empty berval (bv_val is nullptr)
+	HalonMTA_hsl_value_set(ret, HALONMTA_HSL_TYPE_STRING, ut.bv_val ? ut.bv_val : "", ut.bv_len);
 	ldap_memfree(ut.bv_val);
 }
 

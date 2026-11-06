@@ -191,3 +191,6 @@ foreach ($calls as $name => $call)
     $expected[$name] = [none, "Can't contact LDAP server"];
 }
 assert_equal("Test 39", $results, $expected);
+
+// filter_escape escapes the special characters (and NUL), and escaping nothing is an empty string
+assert_equal("Test 40", [LDAP::filter_escape(""), LDAP::filter_escape("plain"), LDAP::filter_escape("a*(b)\\c\x00")], ["", "plain", "a\\2A\\28b\\29\\5Cc\\00"]);
