@@ -18,7 +18,7 @@ yum install halon-extras-ldap
 
 ## Exported classes
 
-These classes needs to be [imported](https://docs.halon.io/hsl/structures.html#import) from the `extras://ldap` module path.
+These classes need to be [imported](https://docs.halon.io/hsl/structures.html#import) from the `extras://ldap` module path.
 
 ### LDAP(uri)
 The LDAP class is an OpenLDAP wrapper class.
@@ -62,7 +62,7 @@ The following options are available
 | referrals         | boolean | `false` |                                                |
 | network_timeout   | number  | `0`     | No timeout (whole seconds)                     |
 | timeout           | number  | `-1`    | No timeout (whole seconds, `0` doesn't wait)   |
-| timelimit         | number  | `0`     | No timelimit (in seconds)                      |
+| timelimit         | number  | `0`     | No time limit (in seconds)                     |
 | tls_verify_peer   | boolean | `true`  | Verify peer certificate                        |
 
 #### getoption(name)
@@ -102,7 +102,7 @@ Bind the LDAP connection. For anonymous bind, do not specify the credentials. On
 **Return type**: `LDAP` or `none`
 
 > [!WARNING]
-> A bind with a DN and an empty password is an "unauthenticated bind" (RFC 4513). Some servers (eg. Active Directory) accept it as an anonymous bind instead of rejecting it, so `bind()` succeeds. When using `bind()` to verify a user's password, always reject empty passwords first.
+> A bind with a DN and an empty password is an "unauthenticated bind" (RFC 4513). Some servers (e.g. Active Directory) accept it as an anonymous bind instead of rejecting it, so `bind()` succeeds. When using `bind()` to verify a user's password, always reject empty passwords first.
 
 ```
 if ($password == "" or !$ldap->bind($dn, $password))
@@ -136,7 +136,7 @@ Unbind the LDAP connection. On error `none` is returned.
 **Return type**: `LDAP` or `none`
 
 #### errno()
-Get the latest errno returned from the underlying OpenLDAP API. When a method of the `LDAP` object (or its `LDAPResult`) returns `none`, the errno is set to the reason (eg. `-9` for an invalid parameter value).
+Get the latest errno returned from the underlying OpenLDAP API. When a method of the `LDAP` object (or its `LDAPResult`) returns `none`, the errno is set to the reason (e.g. `-9` for an invalid parameter value).
 
 **Returns**: errno
 
@@ -154,7 +154,7 @@ Get a descriptive error message, uses OpenLDAP’s `ldap_err2string()`.
 
 **Params**
 
-- errno `number` - A errno (obtained from LDAP’s errno())
+- errno `number` - An errno (obtained from LDAP’s errno())
 
 **Returns**: An error string
 
@@ -199,7 +199,7 @@ echo LDAP::str2dn("cn=admin,dc=example,dc=org");
 #### static dn2str(dn)
 Performs the inverse operation of `str2dn()`, returning a string representation of dn with the necessary escaping. On error `none` is returned.
 
-Values are escaped, but attribute types cannot be. An attribute type must therefore be a name (eg. `cn`) or a numeric OID (eg. `2.5.4.3`), otherwise `none` is returned.
+Values are escaped, but attribute types cannot be. An attribute type must therefore be a name (e.g. `cn`) or a numeric OID (e.g. `2.5.4.3`), otherwise `none` is returned.
 
 **Params**
 
@@ -213,7 +213,7 @@ Values are escaped, but attribute types cannot be. An attribute type must theref
 An LDAP result iterable object which holds the result from an LDAP search.
 
 #### next()
-Return the next result. If there are no more results `false` is returned, and on error `none` is returned. An error may occur after some entries have already been returned (eg. if a size limit was exceeded or the `timeout` expired), so check for `none` after the last entry and use the `LDAP` object's `errno()` to get the error. After an error, `none` is returned on every call (and `errno()` is set to the error again). Search continuation references (references to other servers that may hold more entries) are skipped.
+Return the next result. If there are no more results `false` is returned, and on error `none` is returned. An error may occur after some entries have already been returned (e.g. if a size limit was exceeded or the `timeout` expired), so check for `none` after the last entry and use the `LDAP` object's `errno()` to get the error. After an error, `none` is returned on every call (and `errno()` is set to the error again). Search continuation references (references to other servers that may hold more entries) are skipped.
 
 **Returns**: entry data
 
