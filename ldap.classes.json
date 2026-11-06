@@ -181,12 +181,17 @@
                 "static": true,
                 "name": "str2dn",
                 "parameters": {
-                    "required": [],
+                    "required": [
+                        {
+                            "name": "str",
+                            "type": "string"
+                        }
+                    ],
                     "optional": []
                 },
                 "returnType": "array or none",
-                "detail": "LDAP::str2dn(): array or none",
-                "value": "str2dn()",
+                "detail": "LDAP::str2dn(string $str): array or none",
+                "value": "str2dn($0)",
                 "documentation": "Parses the string representation of a distinguished name str into its components, returning an array of tupels. On error none is returned.",
                 "link": "[Full documentation](https://github.com/halon-extras/ldap)"
             },
@@ -194,12 +199,17 @@
                 "static": true,
                 "name": "dn2str",
                 "parameters": {
-                    "required": [],
+                    "required": [
+                        {
+                            "name": "dn",
+                            "type": "array"
+                        }
+                    ],
                     "optional": []
                 },
                 "returnType": "string or none",
-                "detail": "LDAP::dn2str(): string or none",
-                "value": "dn2str()",
+                "detail": "LDAP::dn2str(array $dn): string or none",
+                "value": "dn2str($0)",
                 "documentation": "Performs the inverse operation of LDAP.str2dn(), returning a string representation of dn with the necessary escaping. On error none is returned.",
                 "link": "[Full documentation](https://github.com/halon-extras/ldap)"
             }
