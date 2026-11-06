@@ -64,7 +64,6 @@ The following options are available
 | timeout           | number  | `0`     | No timeout (in seconds)                        |
 | timelimit         | number  | `0`     | No timelimit (in seconds)                      |
 | tls_verify_peer   | boolean | `true`  | Verify peer certificate                        |
-| tls_default_ca    | boolean | `false` | Load additional TLS certificates (ca_root_nss) |
 
 #### getoption(name)
 Get LDAP connection options. On error `none` is returned.
