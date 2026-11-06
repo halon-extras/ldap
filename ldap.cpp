@@ -273,7 +273,8 @@ void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 	char* base = nullptr;
 	size_t baselen;
 	if (!x || HalonMTA_hsl_value_type(x) != HALONMTA_HSL_TYPE_STRING ||
-			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &base, &baselen))
+			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &base, &baselen) ||
+			memchr(base, '\0', baselen))
 	{
 		l->error = LDAP_PARAM_ERROR;
 		return;
@@ -296,28 +297,35 @@ void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 			if (HalonMTA_hsl_value_type(k) != HALONMTA_HSL_TYPE_STRING ||
 				!HalonMTA_hsl_value_get(k, HALONMTA_HSL_TYPE_STRING, &opt, &optlen))
 				continue;
+			const std::string option(opt, optlen);
 
-			if (strcmp(opt, "filter") == 0)
+			if (option == "filter")
 			{
 				char* val;
 				size_t vallen;
 				if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_STRING ||
 					!HalonMTA_hsl_value_get(v, HALONMTA_HSL_TYPE_STRING, &val, &vallen))
 					continue;
+				if (memchr(val, '\0', vallen))
+				{
+					l->error = LDAP_PARAM_ERROR;
+					return;
+				}
 				filter = std::string(val, vallen);
 			}
-			if (strcmp(opt, "scope") == 0)
+			if (option == "scope")
 			{
 				char* val;
 				size_t vallen;
 				if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_STRING ||
 					!HalonMTA_hsl_value_get(v, HALONMTA_HSL_TYPE_STRING, &val, &vallen))
 					continue;
-				if (strcmp(val, "one") == 0)
+				const std::string value(val, vallen);
+				if (value == "one")
 					scope = LDAP_SCOPE_ONELEVEL;
-				else if (strcmp(val, "sub") == 0)
+				else if (value == "sub")
 					scope = LDAP_SCOPE_SUBTREE;
-				else if (strcmp(val, "base") == 0)
+				else if (value == "base")
 					scope = LDAP_SCOPE_BASE;
 				else
 				{
@@ -325,7 +333,7 @@ void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 					return;
 				}
 			}
-			if (strcmp(opt, "pagesize") == 0)
+			if (option == "pagesize")
 			{
 				double val;
 				if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_NUMBER ||
@@ -338,7 +346,7 @@ void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 				}
 				pagesize = static_cast<ber_int_t>(val);
 			}
-			if (strcmp(opt, "attributes") == 0)
+			if (option == "attributes")
 			{
 				if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_ARRAY)
 					continue;
@@ -351,6 +359,11 @@ void LDAP_class_search(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLVa
 					if (HalonMTA_hsl_value_type(val2) != HALONMTA_HSL_TYPE_STRING ||
 						!HalonMTA_hsl_value_get(val2, HALONMTA_HSL_TYPE_STRING, &val, &vallen))
 						continue;
+					if (memchr(val, '\0', vallen))
+					{
+						l->error = LDAP_PARAM_ERROR;
+						return;
+					}
 					attrs.emplace_back(val, vallen);
 				}
 			}
@@ -390,8 +403,9 @@ void LDAP_class_getoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 	if (LDAP_closed(l))
 		return;
 
+	const std::string option(param, paramlen);
 	int r = 0;
-	if (strcmp(param, "diagnostic_message") == 0)
+	if (option == "diagnostic_message")
 	{
 		char* msg = nullptr;
 		r = ldap_get_option(l->ld, LDAP_OPT_DIAGNOSTIC_MESSAGE, (void*)&msg);
@@ -437,10 +451,11 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		return;
 	}
 
+	const std::string option(param, paramlen);
 	HalonHSLValue* v = HalonMTA_hsl_argument_get(args, 1);
 
 	int r = 0;
-	if (strcmp(param, "protocol_version") == 0)
+	if (option == "protocol_version")
 	{
 		double number;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_NUMBER ||
@@ -452,7 +467,7 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		int pv = (int)number;
 		r = ldap_set_option(l->ld, LDAP_OPT_PROTOCOL_VERSION, &pv);
 	}
-	else if (strcmp(param, "referrals") == 0)
+	else if (option == "referrals")
 	{
 		bool b;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_BOOLEAN ||
@@ -463,7 +478,7 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		}
 		r = ldap_set_option(l->ld, LDAP_OPT_REFERRALS, b ? LDAP_OPT_ON : LDAP_OPT_OFF);
 	}
-	else if (strcmp(param, "network_timeout") == 0)
+	else if (option == "network_timeout")
 	{
 		double number;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_NUMBER ||
@@ -475,7 +490,7 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		struct timeval to = { (int)number, 0 };
 		r = ldap_set_option(l->ld, LDAP_OPT_NETWORK_TIMEOUT, &to);
 	}
-	else if (strcmp(param, "timeout") == 0)
+	else if (option == "timeout")
 	{
 		double number;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_NUMBER ||
@@ -487,7 +502,7 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		struct timeval to = { (int)number, 0 };
 		r = ldap_set_option(l->ld, LDAP_OPT_TIMEOUT, &to);
 	}
-	else if (strcmp(param, "timelimit") == 0)
+	else if (option == "timelimit")
 	{
 		double number;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_NUMBER ||
@@ -499,7 +514,7 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		int to = (int)number;
 		r = ldap_set_option(l->ld, LDAP_OPT_TIMELIMIT, &to);
 	}
-	else if (strcmp(param, "tls_verify_peer") == 0)
+	else if (option == "tls_verify_peer")
 	{
 		bool b;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_BOOLEAN ||
@@ -517,7 +532,7 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 		}
 	}
 #if !defined(__linux__)
-	else if (strcmp(param, "tls_default_ca") == 0)
+	else if (option == "tls_default_ca")
 	{
 		bool b;
 		if (HalonMTA_hsl_value_type(v) != HALONMTA_HSL_TYPE_BOOLEAN ||
@@ -573,7 +588,8 @@ void LDAP_class_bind(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHSLValu
 		char* param;
 		size_t paramlen;
 		if (HalonMTA_hsl_value_type(x) != HALONMTA_HSL_TYPE_STRING ||
-			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &param, &paramlen))
+			!HalonMTA_hsl_value_get(x, HALONMTA_HSL_TYPE_STRING, &param, &paramlen) ||
+			memchr(param, '\0', paramlen))
 		{
 			l->error = LDAP_PARAM_ERROR;
 			return;
@@ -951,7 +967,8 @@ MyLDAP::MyLDAP(const std::string& uri)
 : ld(nullptr)
 , error(0)
 {
-	int r = ldap_initialize(&ld, uri.c_str());
+	// ldap_initialize() takes a C string, so reject embedded NULs before it can truncate the URI.
+	int r = uri.find('\0') != std::string::npos ? LDAP_PARAM_ERROR : ldap_initialize(&ld, uri.c_str());
 	if (r != LDAP_SUCCESS)
 	{
 		ld = nullptr;

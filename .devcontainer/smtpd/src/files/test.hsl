@@ -194,3 +194,44 @@ assert_equal("Test 39", $results, $expected);
 
 // filter_escape escapes the special characters (and NUL), and escaping nothing is an empty string
 assert_equal("Test 40", [LDAP::filter_escape(""), LDAP::filter_escape("plain"), LDAP::filter_escape("a*(b)\\c\x00")], ["", "plain", "a\\2A\\28b\\29\\5Cc\\00"]);
+
+// Text passed to C string APIs must reject NULs instead of using only the prefix.
+// Exercise leading, embedded and trailing NULs, including an otherwise valid admin DN.
+$calls = [
+    "bind dn" => function ($l, $suffix) { return $l->bind("cn=admin,dc=example,dc=test" . $suffix, "admin"); },
+    "bind leading NUL" => function ($l, $suffix) { return $l->bind("\x00cn=admin,dc=example,dc=test", "admin"); },
+    "search base" => function ($l, $suffix) { return $l->search("ou=people,dc=example,dc=test" . $suffix); },
+    "search filter" => function ($l, $suffix) { return $l->search("ou=people,dc=example,dc=test", ["filter" => "(uid=jane)" . $suffix]); },
+    "search attribute" => function ($l, $suffix) { return $l->search("ou=people,dc=example,dc=test", ["attributes" => ["cn", "mail" . $suffix]]); },
+    "search scope" => function ($l, $suffix) { return $l->search("ou=people,dc=example,dc=test", ["scope" => "base" . $suffix]); },
+    "setoption name" => function ($l, $suffix) { return $l->setoption("timeout" . $suffix, 5); },
+    "getoption name" => function ($l, $suffix) { return $l->getoption("diagnostic_message" . $suffix); }
+];
+foreach (["\x00", "\x00,dc=wrong"] as $suffix)
+{
+    foreach ($calls as $name => $call)
+    {
+        $ldap = connect_and_bind("cn=admin,dc=example,dc=test", "admin");
+        assert_equal("NUL rejected: " . $name . " " . json_encode($suffix), [$call($ldap, $suffix) === none, $ldap->errno()], [true, -9]);
+    }
+    // Unknown search options are ignored; a NUL-suffixed name must not override the real filter.
+    $result = $ldap->search("ou=people,dc=example,dc=test", ["filter" => "(uid=jane)", "filter" . $suffix => "(uid=john)"]);
+    assert_equal("Search option name uses full string " . json_encode($suffix), [$result->next()["uid"], $result->next()], [["jane"], false]);
+    $ldap = LDAP("ldap://ldap:389" . $suffix);
+    assert_equal("NUL rejected: URI " . json_encode($suffix), [$ldap->errno(), $ldap->bind(), $ldap->errno()], [-9, none, -9]);
+}
+
+// A rejected bind must not authenticate as the truncated DN: a subsequent valid bind still works.
+$ldap = LDAP("ldap://ldap:389");
+assert_equal("NUL rejected before bind", [$ldap->bind("cn=admin,dc=example,dc=test\x00,dc=wrong", "admin"), $ldap->errno()], [none, -9]);
+assert_equal("Valid bind after rejected DN", !!$ldap->bind("cn=admin,dc=example,dc=test", "admin"), true);
+
+// Passwords use berval lengths, so a NUL is sent as password data, not rejected or truncated locally.
+assert_equal("Binary password is not truncated", [$ldap->bind("cn=admin,dc=example,dc=test", "admin\x00wrong"), $ldap->errno()], [none, 49]);
+
+// Escaped NULs in filters and DNs remain valid text and reach the server.
+$ldap = connect_and_bind("cn=admin,dc=example,dc=test", "admin");
+$result = $ldap->search("ou=people,dc=example,dc=test", ["filter" => "(uid=" . LDAP::filter_escape("jane\x00wrong") . ")"]);
+assert_equal("Escaped NUL filter", $result->next(), false);
+$result = $ldap->search(LDAP::dn2str([["uid", "jane\x00wrong"], ["ou", "people"], ["dc", "example"], ["dc", "test"]]));
+assert_equal("Escaped NUL DN", [$result->next(), $ldap->errno()], [none, 32]);
