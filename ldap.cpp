@@ -442,9 +442,12 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 			!HalonMTA_hsl_value_get(v, HALONMTA_HSL_TYPE_BOOLEAN, &b, nullptr))
 			return;
 		int val = b ? LDAP_OPT_X_TLS_DEMAND : LDAP_OPT_X_TLS_NEVER;
-		ldap_set_option(l->ld, LDAP_OPT_X_TLS_REQUIRE_CERT, &val);
-		val = 0;
-		ldap_set_option(l->ld, LDAP_OPT_X_TLS_NEWCTX, &val);
+		r = ldap_set_option(l->ld, LDAP_OPT_X_TLS_REQUIRE_CERT, &val);
+		if (r == LDAP_OPT_SUCCESS)
+		{
+			val = 0;
+			r = ldap_set_option(l->ld, LDAP_OPT_X_TLS_NEWCTX, &val);
+		}
 	}
 #if !defined(__linux__)
 	else if (strcmp(param, "tls_default_ca") == 0)
@@ -455,9 +458,12 @@ void LDAP_class_setoption(HalonHSLContext* hhc, HalonHSLArguments* args, HalonHS
 			return;
 		if (b)
 		{
-			ldap_set_option(l->ld, LDAP_OPT_X_TLS_CACERTFILE, HALON_CA_FILE);
-			int val = 0;
-			ldap_set_option(l->ld, LDAP_OPT_X_TLS_NEWCTX, &val);
+			r = ldap_set_option(l->ld, LDAP_OPT_X_TLS_CACERTFILE, HALON_CA_FILE);
+			if (r == LDAP_OPT_SUCCESS)
+			{
+				int val = 0;
+				r = ldap_set_option(l->ld, LDAP_OPT_X_TLS_NEWCTX, &val);
+			}
 		}
 	}
 #endif
