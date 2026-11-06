@@ -60,8 +60,8 @@ The following options are available
 | ----------------- | ------- | ------- | ---------------------------------------------- |
 | protocol_version  | number  | `3`     |                                                |
 | referrals         | boolean | `false` |                                                |
-| network_timeout   | number  | `0`     | No timeout                                     |
-| timeout           | number  | `0`     | No timeout (in seconds)                        |
+| network_timeout   | number  | `0`     | No timeout (whole seconds)                     |
+| timeout           | number  | `-1`    | No timeout (whole seconds, `0` doesn't wait)   |
 | timelimit         | number  | `0`     | No timelimit (in seconds)                      |
 | tls_verify_peer   | boolean | `true`  | Verify peer certificate                        |
 
